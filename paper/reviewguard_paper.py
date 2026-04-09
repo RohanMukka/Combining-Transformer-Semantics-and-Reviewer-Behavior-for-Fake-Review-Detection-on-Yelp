@@ -243,6 +243,7 @@ def make_styles():
         fontSize=8,
         leading=10,
         alignment=TA_CENTER,
+        textColor=white,
     )
 
     s['td'] = ParagraphStyle(

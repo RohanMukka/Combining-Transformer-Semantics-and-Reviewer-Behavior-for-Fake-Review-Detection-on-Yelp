@@ -1,0 +1,86 @@
+# ReviewGuard Default Configuration
+
+# ─── Data ─────────────────────────────────────────────────────────────────────
+data:
+  yelpzip_url: "https://www.cs.uic.edu/~liub/FBS/YelpZip.zip"
+  yelpnyc_url: "https://www.cs.uic.edu/~liub/FBS/YelpNYC.zip"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  features_dir: "data/features"
+  # Temporal split: reviews before cutoff → train, after → test
+  temporal_cutoff_fraction: 0.8   # use 80% earliest reviews for training
+  max_review_length: 512          # RoBERTa max token length
+
+# ─── Text Branch (RoBERTa) ────────────────────────────────────────────────────
+text_branch:
+  model_name: "roberta-base"
+  freeze_layers: 6                # freeze first N encoder layers
+  hidden_dropout_prob: 0.1
+  # Training
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.1               # fraction of total steps for warmup
+  weight_decay: 0.01
+  batch_size: 32
+  max_epochs: 5
+  gradient_clip_norm: 1.0
+  embedding_dim: 768              # [CLS] embedding dimension
+
+# ─── Behavior Branch ─────────────────────────────────────────────────────────
+behavior_branch:
+  input_dim: 6
+  hidden_dims: [64, 32]
+  dropout: 0.3
+  learning_rate: 1.0e-3
+  batch_size: 256
+  max_epochs: 50
+
+# ─── Fusion Model (ReviewGuard) ───────────────────────────────────────────────
+fusion:
+  text_dim: 768
+  behavior_dim: 6
+  fused_dim: 774                  # 768 + 6
+  hidden_dims: [256, 64]
+  output_dim: 1
+  dropout: 0.3
+  learning_rate: 1.0e-3
+  batch_size: 128
+  max_epochs: 30
+
+# ─── Focal Loss ───────────────────────────────────────────────────────────────
+focal_loss:
+  gamma: 2.0                      # focusing parameter
+  # alpha is set dynamically from class frequencies (class-weighted)
+  # alpha_manual: null            # set to list [alpha_neg, alpha_pos] to override
+
+# ─── Evaluation ───────────────────────────────────────────────────────────────
+evaluation:
+  n_folds: 5                      # temporal cross-validation folds
+  primary_metric: "auc_roc"
+  secondary_metric: "macro_f1"
+  # Reviewer stratum buckets (by review count)
+  stratum_bins: [1, 5, 20, 50, 9999]
+  stratum_labels: ["1-4", "5-19", "20-49", "50+"]
+
+# ─── Explainability ──────────────────────────────────────────────────────────
+explainability:
+  n_background_samples: 200       # SHAP background dataset size
+  n_explain_samples: 500          # samples to explain
+  save_plots: true
+  plots_dir: "results/shap_plots"
+
+# ─── Baselines ────────────────────────────────────────────────────────────────
+baselines:
+  tfidf_max_features: 50000
+  tfidf_ngram_range: [1, 2]
+  svm_C: 1.0
+  svm_kernel: "linear"
+  rf_n_estimators: 200
+  rf_max_depth: 15
+  lr_C: 1.0
+
+# ─── General ─────────────────────────────────────────────────────────────────
+seed: 42
+device: "auto"                    # "auto" → GPU if available, else CPU
+results_dir: "results"
+models_dir: "models"
+log_level: "INFO"

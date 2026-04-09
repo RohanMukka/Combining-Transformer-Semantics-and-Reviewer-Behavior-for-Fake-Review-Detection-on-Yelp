@@ -155,6 +155,17 @@ All in-domain experiments use five-fold stratified cross-validation with the fak
 
 We compare ReviewGuard against five baselines spanning the feature-engineering and neural paradigms: (1)~SVM with RBF kernel on the full 32-dimensional feature set; (2)~Logistic Regression on the same features; (3)~Random Forest, an ensemble classifier using all 32 features; (4)~Text-only MLP, the two-layer MLP trained exclusively on PCA-derived text features; and (5)~Behavior-only MLP, the two-layer MLP trained exclusively on the behavioral feature subset.
 
+\subsection{Training Convergence}
+
+Fig.~\ref{fig:training_loss} shows the training loss curves for the neural network models. All MLP variants converge within the allocated training epochs, with the ReviewGuard fusion model exhibiting stable convergence behavior consistent with effective multi-modal feature integration.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/training_loss_curves.png}
+\caption{Training loss curves for the neural network models. All models converge within the training budget, with ReviewGuard exhibiting smooth convergence characteristic of effective feature fusion.}
+\label{fig:training_loss}
+\end{figure}
+
 % ============================================================
 % V. RESULTS AND ANALYSIS
 % ============================================================
@@ -187,6 +198,15 @@ Behavior-only MLP  & 0.803 & 0.623 & 0.306 & 0.753 \\
 
 The improvement over Text-only MLP (AUC-ROC +0.090, Macro-F1 +0.090) confirms hypothesis H1: behavioral features provide information complementary to text semantics. The improvement over Behavior-only MLP (AUC-ROC +0.064, Macro-F1 +0.083) confirms hypothesis H2: transformer text representations provide information beyond handcrafted behavioral statistics.
 
+Fig.~\ref{fig:model_comparison} provides a visual summary of all model performances across the key metrics, highlighting the trade-offs between AUC-ROC, Macro-F1, and Recall(Fake).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/model_comparison_summary.png}
+\caption{Comparative performance of all models across AUC-ROC, Macro-F1, and Recall(Fake). ReviewGuard achieves the best balance between discrimination and minority-class recall.}
+\label{fig:model_comparison}
+\end{figure}
+
 An important finding is the tension between AUC-ROC and Recall(Fake) across models. The Behavior + Random Forest baseline achieves the highest AUC-ROC (0.926) but the lowest Recall(Fake) (0.343), indicating that it accurately ranks reviews by suspicion but applies an overly conservative decision threshold that misses most fake reviews. ReviewGuard, by contrast, achieves a Recall(Fake) of 0.756---more than double that of Random Forest---while maintaining a competitive AUC-ROC of 0.867. For a platform deploying a moderation system, this higher recall is operationally critical: it means ReviewGuard flags 75.6\% of fake reviews for human review, compared to only 34.3\% for the Random Forest baseline.
 
 Fig.~\ref{fig:roc} shows the ROC curves for all models, illustrating the trade-off between true positive rate and false positive rate across classification thresholds.
@@ -197,6 +217,43 @@ Fig.~\ref{fig:roc} shows the ROC curves for all models, illustrating the trade-o
 \caption{ROC curves for all models on the YelpCHI dataset. ReviewGuard achieves competitive AUC while maintaining substantially higher recall at operationally relevant thresholds.}
 \label{fig:roc}
 \end{figure}
+
+Fig.~\ref{fig:roc_individual} presents the individual ROC curves for each model, showing per-model operating characteristics in detail.
+
+\begin{figure*}[htbp]
+\centering
+\begin{minipage}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/roc_logistic_regression.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/roc_svm.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/roc_random_forest.png}
+\end{minipage}
+\vspace{0.3cm}
+\begin{minipage}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/roc_behavior_mlp.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/roc_text-like_mlp.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/roc_reviewguard_fusion_mlp.png}
+\end{minipage}
+\caption{Individual ROC curves for each model. Top row (left to right): Logistic Regression (AUC=0.771), SVM (AUC=0.837), Random Forest (AUC=0.926). Bottom row: Behavior MLP (AUC=0.803), Text-like MLP (AUC=0.777), ReviewGuard Fusion MLP (AUC=0.867).}
+\label{fig:roc_individual}
+\end{figure*}
 
 \subsection{Ablation Study}
 
@@ -251,6 +308,24 @@ The top-5 features by SHAP importance (Features 6, 19, 9, 20, 1) span both behav
 \end{figure}
 
 The SHAP analysis also reveals that feature importance is not uniformly distributed: the top 5 features account for a disproportionate share of total prediction importance. This concentration suggests that a smaller, carefully selected feature set could approximate the full model's performance, a finding relevant to deployment scenarios with strict latency or feature engineering constraints.
+
+Fig.~\ref{fig:shap_summary} presents the SHAP summary beeswarm plot, which shows the distribution and directionality of each feature's impact on model predictions. The horizontal spread indicates the magnitude of influence, while the color encoding represents the feature value.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/shap_summary.png}
+\caption{SHAP summary (beeswarm) plot showing feature value distributions and their directional impact on predictions. Each dot represents one sample; color indicates feature value (red=high, blue=low).}
+\label{fig:shap_summary}
+\end{figure}
+
+As an additional interpretability check, Fig.~\ref{fig:rf_importance} shows the Gini-based feature importance from the Random Forest baseline. The top features identified by SHAP and Random Forest are largely consistent, reinforcing confidence in the feature importance rankings.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/feature_importance_rf.png}
+\caption{Random Forest Gini-based feature importance. The top features align with those identified by SHAP analysis, providing corroborating evidence for feature relevance.}
+\label{fig:rf_importance}
+\end{figure}
 
 \subsection{Confusion Matrix Analysis}
 

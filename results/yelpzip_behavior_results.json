@@ -1,0 +1,25 @@
+{
+  "dataset": "yelpzip",
+  "model": "BehaviorMLP",
+  "architecture": {
+    "input_dim": 6,
+    "hidden_dims": [
+      64,
+      32
+    ],
+    "dropout": 0.3
+  },
+  "training": {
+    "lr": 0.001,
+    "batch_size": 256,
+    "epochs": 50,
+    "gamma": 2.0
+  },
+  "test_metrics": {
+    "loss": 0.09911091791258918,
+    "accuracy": 0.5105483921081249,
+    "auc_roc": 0.4453356188809786,
+    "macro_f1": 0.4619369742146623
+  },
+  "best_val_auc": 0.4453356188809786
+}

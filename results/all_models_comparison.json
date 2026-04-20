@@ -1,0 +1,110 @@
+{
+  "baselines": {
+    "dataset": "yelpzip",
+    "n_train": 128745,
+    "n_test": 32185,
+    "models": [
+      {
+        "model": "TF-IDF + SVM",
+        "metrics": {
+          "macro_f1": 0.6960112114505559,
+          "f1_fake": 0.7191893530413696,
+          "f1_genuine": 0.6728330698597423,
+          "precision_fake": 0.6931166879973291,
+          "recall_fake": 0.7473002159827213,
+          "precision_genuine": 0.7036724356268468,
+          "recall_genuine": 0.6445833601856029,
+          "accuracy": 0.6977784682305421,
+          "auc_roc": 0.7696610674445652,
+          "train_time_seconds": 58.14
+        }
+      },
+      {
+        "model": "TF-IDF + LogReg",
+        "metrics": {
+          "macro_f1": 0.7115088308142062,
+          "f1_fake": 0.7265048142241125,
+          "f1_genuine": 0.6965128474043,
+          "precision_fake": 0.7154741128563118,
+          "recall_fake": 0.7378809695224382,
+          "precision_genuine": 0.7086362120706903,
+          "recall_genuine": 0.6847973190694078,
+          "accuracy": 0.7122883330744135,
+          "auc_roc": 0.788241310740897,
+          "train_time_seconds": 49.35
+        }
+      },
+      {
+        "model": "Behavior + RandomForest",
+        "metrics": {
+          "macro_f1": 0.45626675926700944,
+          "f1_fake": 0.5912835702018567,
+          "f1_genuine": 0.3212499483321622,
+          "precision_fake": 0.5052533072440342,
+          "recall_fake": 0.7126229901607871,
+          "precision_genuine": 0.4479022591055786,
+          "recall_genuine": 0.25043500676677194,
+          "accuracy": 0.48979338201025324,
+          "auc_roc": 0.49612243561599045,
+          "train_time_seconds": 2.04
+        }
+      }
+    ]
+  },
+  "behavior_only_mlp": {
+    "dataset": "yelpzip",
+    "model": "BehaviorMLP",
+    "architecture": {
+      "input_dim": 6,
+      "hidden_dims": [
+        64,
+        32
+      ],
+      "dropout": 0.3
+    },
+    "training": {
+      "lr": 0.001,
+      "batch_size": 256,
+      "epochs": 50,
+      "gamma": 2.0
+    },
+    "test_metrics": {
+      "loss": 0.09911091791258918,
+      "accuracy": 0.5105483921081249,
+      "auc_roc": 0.4453356188809786,
+      "macro_f1": 0.4619369742146623
+    },
+    "best_val_auc": 0.4453356188809786
+  },
+  "reviewguard_fusion": {
+    "dataset": "yelpzip",
+    "model": "ReviewGuard (Fusion)",
+    "architecture": {
+      "text_dim": 768,
+      "behavior_dim": 6,
+      "fused_dim": 774,
+      "hidden_dims": [
+        256,
+        64
+      ],
+      "dropout": 0.3
+    },
+    "training": {
+      "lr": 0.001,
+      "batch_size": 128,
+      "epochs": 30,
+      "gamma": 2.0
+    },
+    "test_metrics": {
+      "loss": 0.08699480367321817,
+      "accuracy": 0.4970017088705919,
+      "auc_roc": 0.5040731277812784,
+      "macro_f1": 0.4927634365155996,
+      "precision_fake": 0.5190457256461233,
+      "recall_fake": 0.3915886729061675,
+      "precision_genuine": 0.4828658847526772,
+      "recall_genuine": 0.610233936972353
+    },
+    "best_val_auc": 0.5040731277812784
+  }
+}

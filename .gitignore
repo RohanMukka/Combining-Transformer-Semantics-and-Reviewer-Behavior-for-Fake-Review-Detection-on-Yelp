@@ -17,3 +17,7 @@ poster/poster_v*-*.jpg
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+
+# Data and Scratch files
+data/
+scratch_fix_data.py

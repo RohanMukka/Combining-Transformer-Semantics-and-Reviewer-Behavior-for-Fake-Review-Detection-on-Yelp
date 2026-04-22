@@ -17,21 +17,21 @@ Evaluated on the **YelpZIP** benchmark (67,395 reviews, 13.2% fake), ReviewGuard
 
 ```
                      ┌────────────────────────────────────────┐
-   Review Text  ───► │  RoBERTa-base (12 transformer layers)   │
-                     │  (first 6 layers frozen)                 │
-                     │  [CLS] token embedding: 768-dim          │
+   Review Text  ───► │  RoBERTa-base (12 transformer layers)  │
+                     │  (first 6 layers frozen)               │
+                     │  [CLS] token embedding: 768-dim        │
                      └────────────────────┬───────────────────┘
                                           │
                                           ▼
-                     ┌────────────────────────────────────────┐
-  Reviewer     ───► │  Behavior Feature Engineering          │
+                    ┌─────────────────────────────────────────┐
+  Reviewer     ───► │  Behavior Feature Engineering           │
   Activity          │  1. avg_star_rating                     │
                     │  2. review_count                        │
                     │  3. burst_ratio (30-day windows)        │
                     │  4. rating_deviation                    │
                     │  5. category_diversity                  │
                     │  6. account_age_at_review               │
-                    └────────────────────┬───────────────────┘
+                    └────────────────────┬────────────────────┘
                                          │  6-dim (StandardScaler)
                                          │
                      ───────────────────────────────────────

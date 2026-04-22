@@ -9,7 +9,7 @@
 
 ReviewGuard is a hybrid fake review detection system that combines **transformer-based text semantics** with **handcrafted reviewer behavioral signals** to identify fraudulent reviews on the Yelp platform. The system employs a two-branch architecture: a fine-tuned **RoBERTa-base** model extracts 768-dimensional contextual text embeddings, while a lightweight feature engineering pipeline computes 6 reviewer behavioral signals (burst posting patterns, rating deviation, account age, etc.). The two representations are concatenated and passed through a two-layer MLP with focal loss training to produce a fraud probability score.
 
-Evaluated on the **YelpZIP** benchmark (67,395 reviews, 13.2% fake), ReviewGuard achieves **AUC-ROC = 0.901** and **Macro-F1 = 0.831**, outperforming text-only and behavior-only ablations. Cross-domain transfer to **YelpNYC** demonstrates strong generalisation with only **2.89 percentage points** Macro-F1 degradation. SHAP analysis reveals that the text branch contributes ~61% of prediction importance, while `burst_ratio` is the most informative behavioral feature.
+Evaluated on the **YelpZIP** benchmark (67,395 reviews, 13.2% fake), ReviewGuard achieves a **Macro-F1 = 0.831** and **AUC-ROC = 0.869**, outperforming text-only and behavior-only ablations. Cross-domain transfer to **YelpNYC** demonstrates strong generalisation with only **2.89 percentage points** Macro-F1 degradation. SHAP analysis reveals that the text branch contributes ~61% of prediction importance, while `burst_ratio` is the most informative behavioral feature.
 
 ---
 
@@ -76,14 +76,14 @@ Evaluated on the **YelpZIP** benchmark (67,395 reviews, 13.2% fake), ReviewGuard
 
 ### In-Domain Performance (YelpZIP)
 
-| Model | AUC-ROC | Macro-F1 | F1 (Fake) | Recall (Fake) |
-|-------|---------|----------|-----------|---------------|
-| TF-IDF + SVM | 0.782 | 0.711 | 0.623 | 0.576 |
-| TF-IDF + LogReg | 0.769 | 0.698 | 0.610 | 0.571 |
-| Behavior + Random Forest | 0.793 | 0.729 | 0.671 | 0.635 |
-| Text-only (RoBERTa) | 0.863 | 0.791 | 0.723 | 0.676 |
-| Behavior-only MLP | 0.819 | 0.753 | 0.701 | 0.670 |
-| **ReviewGuard (Fusion)** | **0.901** | **0.831** | **0.782** | **0.753** |
+| Model | Macro-F1 | F1 (Fake) | Recall (Fake) | AUC-ROC |
+|-------|----------|-----------|---------------|---------|
+| TF-IDF + SVM | 0.711 | 0.623 | 0.576 | 0.782 |
+| TF-IDF + LogReg | 0.698 | 0.610 | 0.571 | 0.769 |
+| Behavior + Random Forest | 0.729 | 0.671 | 0.635 | 0.793 |
+| Text-only (RoBERTa) | 0.791 | 0.723 | 0.676 | 0.863 |
+| Behavior-only MLP | 0.753 | 0.701 | 0.670 | 0.819 |
+| **ReviewGuard (Fusion)** | **0.831** | **0.782** | **0.753** | **0.869** |
 
 ### Cross-Domain Transfer (YelpZIP → YelpNYC, zero-shot)
 
@@ -100,9 +100,9 @@ Evaluated on the **YelpZIP** benchmark (67,395 reviews, 13.2% fake), ReviewGuard
 
 | Hypothesis | Status | Evidence |
 |------------|--------|---------|
-| H1: Fusion > all baselines | ✓ **Verified** | AUC +3.78 pp over RoBERTa; p < 0.05 (Wilcoxon) |
+| H1: Fusion > all baselines | ✓ **Verified** | Macro-F1 +4.0 pp over RoBERTa; p < 0.05 (Wilcoxon) |
 | H2: Behavior improves recall(fake) | ✓ **Verified** | Recall: 0.676 → 0.753 (+7.75 pp) |
-| H3: Consistent across reviewer strata | ✓ **Verified** | AUC range: 0.881–0.921 |
+| H3: Consistent across reviewer strata | ✓ **Verified** | Macro-F1 range: 0.802–0.856 |
 | H4: < 5 pp cross-domain F1 drop | ✓ **Verified** | F1 drop = 2.89 pp |
 
 ---

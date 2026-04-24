@@ -21,7 +21,7 @@ text_branch:
   warmup_ratio: 0.1               # fraction of total steps for warmup
   weight_decay: 0.01
   batch_size: 32
-  max_epochs: 5
+  max_epochs: 1
   gradient_clip_norm: 1.0
   embedding_dim: 768              # [CLS] embedding dimension
 

@@ -343,29 +343,23 @@ def load_embeddings(
         n = 5000
         labels = np.random.choice([0, 1], size=n, p=[0.868, 0.132])
 
-    # Load or generate text embeddings
-    if emb_path.exists():
-        text_emb = np.load(emb_path)
-        logger.info(f"Loaded text embeddings: {emb_path} {text_emb.shape}")
-    else:
-        logger.warning(
-            f"Text embeddings not found at {emb_path}. "
-            "Generating random embeddings (run text_branch.py --mode extract first)."
+    # Load text embeddings
+    if not emb_path.exists():
+        raise FileNotFoundError(
+            f"CRITICAL: Text embeddings NOT found at {emb_path}. "
+            "Fusion model cannot train on empty data. Run Step 2 (RoBERTa Extraction) first!"
         )
-        rng = np.random.default_rng(42)
-        text_emb = rng.standard_normal((n, 768)).astype(np.float32)
+    text_emb = np.load(emb_path)
+    logger.info(f"Loaded text embeddings: {emb_path} {text_emb.shape}")
 
-    # Load or generate behavior features
-    if behavior_path.exists():
-        behavior = np.load(behavior_path)
-        logger.info(f"Loaded behavior features: {behavior_path} {behavior.shape}")
-    else:
-        logger.warning(
-            f"Behavior features not found at {behavior_path}. "
-            "Generating random features (run behavior_features.py first)."
+    # Load behavior features
+    if not behavior_path.exists():
+        raise FileNotFoundError(
+            f"CRITICAL: Behavior features NOT found at {behavior_path}. "
+            "Run Step 2 (Behavior Extraction) first!"
         )
-        rng = np.random.default_rng(43)
-        behavior = rng.standard_normal((n, 6)).astype(np.float32)
+    behavior = np.load(behavior_path)
+    logger.info(f"Loaded behavior features: {behavior_path} {behavior.shape}")
 
     # Ensure alignment
     min_n = min(len(text_emb), len(behavior), len(labels))

@@ -169,9 +169,11 @@ def run_shap_analysis(
     shap_values = explainer.shap_values(explain_data)
 
     if isinstance(shap_values, list):
-        shap_values = shap_values[0]
+        # For binary classification, SHAP returns a list of two arrays (one per class).
+        # We take the values for the 'fake' class (index 1).
+        shap_values = shap_values[1] if len(shap_values) > 1 else shap_values[0]
 
-    shap_values = np.array(shap_values)
+    shap_values = np.array(shap_values).squeeze()
     explain_np = explain_data.cpu().numpy()
 
     # Save SHAP values

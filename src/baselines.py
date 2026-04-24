@@ -405,6 +405,13 @@ def run_baselines(
     plot_confusion_matrices(all_results, y_test, results_dir)
     plot_roc_curves(all_results, y_test, results_dir)
 
+    # ── Save Probabilities for Combined Plot ──
+    for r in all_results:
+        model_slug = r["model"].lower().replace(" ", "_").replace("+", "plus")
+        if r["y_prob"] is not None:
+            np.save(results_dir / f"{dataset_name}_{model_slug}_probs.npy", r["y_prob"])
+    np.save(results_dir / f"{dataset_name}_baselines_labels.npy", y_test)
+
     # ── Save results ──
     output = {
         "dataset": dataset_name,

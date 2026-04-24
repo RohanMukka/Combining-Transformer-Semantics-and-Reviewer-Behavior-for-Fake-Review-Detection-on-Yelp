@@ -120,7 +120,16 @@ def run_all(
         json.dump(all_results, fh, indent=2, default=str)
     logger.info(f"\nAll results saved → {comparison_path}")
 
-    # ── Summary table ─────────────────────────────────────────────────────────
+    # ── 5. Generate Report Figures ────────────────────────────────────────────
+    logger.info("\n" + "=" * 60)
+    logger.info("Step 5: Generating professional report figures")
+    logger.info("=" * 60)
+    try:
+        from .visualize import generate_report_figures
+        generate_report_figures(dataset_name=dataset_name, config=config)
+    except Exception as exc:
+        logger.warning(f"Figure generation failed: {exc}")
+
     _print_summary_table(all_results)
 
     return all_results

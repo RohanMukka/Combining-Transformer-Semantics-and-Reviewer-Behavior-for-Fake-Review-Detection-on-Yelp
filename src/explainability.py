@@ -43,14 +43,14 @@ from .utils import ensure_dirs, get_device, load_config, set_seed, setup_logging
 
 logger = logging.getLogger(__name__)
 
-# Full feature names for the 774-dim fused vector
-TEXT_DIM = 768
-BEHAVIOR_DIM = 6
+# Full feature names for the 32-dim fused vector (paper architecture)
+TEXT_DIM = 16
+BEHAVIOR_DIM = 16
 FUSED_DIM = TEXT_DIM + BEHAVIOR_DIM
 
-BEHAVIOR_FEATURE_NAMES = [f"behavior_{fn}" for fn in FEATURE_NAMES]
+BEHAVIOR_FEATURE_NAMES = [f"behavior_{fn}" for fn in FEATURE_NAMES] + [f"behavior_pad_{i}" for i in range(10)]
 
-# For SHAP we summarise text dimensions as a group to avoid 768-dim noise
+# For SHAP we summarise text dimensions as a group
 TEXT_BRANCH_NAMES = [f"text_dim_{i}" for i in range(TEXT_DIM)]
 FUSED_FEATURE_NAMES = TEXT_BRANCH_NAMES + BEHAVIOR_FEATURE_NAMES
 
@@ -69,7 +69,7 @@ class ReviewGuardSHAPWrapper:
         self.device = device
 
     def __call__(self, X: np.ndarray) -> np.ndarray:
-        """Forward pass for SHAP: accepts (N, 774) numpy, returns (N,) probabilities."""
+        """Forward pass for SHAP: accepts (N, 32) numpy, returns (N,) probabilities."""
         import torch
         self.model.eval()
         with torch.no_grad():
@@ -102,10 +102,10 @@ def run_shap_analysis(
 
     Args:
         model: Trained :class:`~src.fusion_model.ReviewGuard` (PyTorch module).
-        train_emb: Training text embeddings of shape ``(N_train, 768)``.
-        train_behavior: Training behavior features of shape ``(N_train, 6)``.
-        test_emb: Test text embeddings of shape ``(N_test, 768)``.
-        test_behavior: Test behavior features of shape ``(N_test, 6)``.
+        train_emb: Training text embeddings of shape ``(N_train, 16)``.
+        train_behavior: Training behavior features of shape ``(N_train, 16)``.
+        test_emb: Test text embeddings of shape ``(N_test, 16)``.
+        test_behavior: Test behavior features of shape ``(N_test, 16)``.
         test_labels: Test ground-truth labels of shape ``(N_test,)``.
         config: Configuration dictionary.
         n_background: Number of background samples for DeepExplainer.
@@ -137,8 +137,8 @@ def run_shap_analysis(
     model.eval()
 
     # ── Build fused arrays ──
-    train_fused = np.concatenate([train_emb, train_behavior], axis=1)  # (N_train, 774)
-    test_fused = np.concatenate([test_emb, test_behavior], axis=1)  # (N_test, 774)
+    train_fused = np.concatenate([train_emb, train_behavior], axis=1)  # (N_train, 32)
+    test_fused = np.concatenate([test_emb, test_behavior], axis=1)  # (N_test, 32)
 
     # ── Background dataset ──
     rng = np.random.default_rng(42)
@@ -152,7 +152,7 @@ def run_shap_analysis(
     # ── SHAP DeepExplainer ──
     logger.info(f"Initialising SHAP DeepExplainer (background={n_background})…")
 
-    # Create a PyTorch module that takes the fused 774-dim input
+    # Create a PyTorch module that takes the fused 32-dim input
     class FusedForward(torch.nn.Module):
         def __init__(self, fusion_model):
             super().__init__()
@@ -193,11 +193,11 @@ def plot_branch_importance(
 ) -> None:
     """Plot branch-level SHAP importance: text branch vs. behavior branch.
 
-    Aggregates SHAP magnitudes across the 768 text dimensions and 6 behavior
+    Aggregates SHAP magnitudes across the 16 text dimensions and 6 behavior
     dimensions separately to quantify each branch's contribution.
 
     Args:
-        shap_values: SHAP values of shape ``(N, 774)``.
+        shap_values: SHAP values of shape ``(N, 32)``.
         save_dir: Directory to save the plot.
     """
     save_dir = Path(save_dir)
@@ -215,7 +215,7 @@ def plot_branch_importance(
     # Pie chart: branch contributions
     axes[0].pie(
         [text_pct, behavior_pct],
-        labels=["Text Branch\n(RoBERTa)", "Behavior Branch"],
+        labels=["Text Branch\n(RoBERTa PCA)", "Behavior Branch"],
         colors=["#1976D2", "#E53935"],
         autopct="%1.1f%%",
         startangle=90,
@@ -225,10 +225,10 @@ def plot_branch_importance(
     axes[0].set_title("Branch Contribution to Predictions\n(Mean |SHAP|)", fontsize=12, fontweight="bold")
 
     # Per-behavior feature importance
-    behavior_shap = shap_values[:, TEXT_DIM:]
+    behavior_shap = shap_values[:, TEXT_DIM : TEXT_DIM + len(FEATURE_NAMES)]
     behavior_mean_abs = np.abs(behavior_shap).mean(axis=0)
 
-    y_pos = np.arange(BEHAVIOR_DIM)
+    y_pos = np.arange(len(FEATURE_NAMES))
     colors_bar = ["#E53935" if s > 0 else "#1976D2" for s in behavior_shap.mean(axis=0)]
 
     axes[1].barh(
@@ -260,8 +260,8 @@ def plot_behavior_shap_summary(
     """Plot a SHAP beeswarm summary plot for the 6 behavior features.
 
     Args:
-        shap_values: SHAP values of shape ``(N, 774)``.
-        explain_data: Feature values used for explanation, shape ``(N, 774)``.
+        shap_values: SHAP values of shape ``(N, 32)``.
+        explain_data: Feature values used for explanation, shape ``(N, 32)``.
         save_dir: Directory to save the plot.
     """
     try:
@@ -274,8 +274,8 @@ def plot_behavior_shap_summary(
     ensure_dirs(save_dir)
 
     # Extract just the behavior portion
-    behavior_shap = shap_values[:, TEXT_DIM:]  # (N, 6)
-    behavior_data = explain_data[:, TEXT_DIM:]  # (N, 6)
+    behavior_shap = shap_values[:, TEXT_DIM : TEXT_DIM + len(FEATURE_NAMES)]  # (N, 6)
+    behavior_data = explain_data[:, TEXT_DIM : TEXT_DIM + len(FEATURE_NAMES)]  # (N, 6)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
@@ -324,8 +324,8 @@ def plot_reviewer_type_analysis(
     plots branch contributions separately for each group.
 
     Args:
-        shap_values: SHAP values of shape ``(N, 774)``.
-        explain_data: Feature values of shape ``(N, 774)``.
+        shap_values: SHAP values of shape ``(N, 32)``.
+        explain_data: Feature values of shape ``(N, 32)``.
         explain_labels: True labels of shape ``(N,)``.
         save_dir: Directory to save the plot.
     """
@@ -409,8 +409,8 @@ def plot_sample_waterfall(
     Only shows behavior features + text branch aggregate for readability.
 
     Args:
-        shap_values: SHAP values of shape ``(N, 774)``.
-        explain_data: Feature values of shape ``(N, 774)``.
+        shap_values: SHAP values of shape ``(N, 32)``.
+        explain_data: Feature values of shape ``(N, 32)``.
         explain_labels: True labels of shape ``(N,)``.
         sample_idx: Index of the sample to explain.
         save_dir: Directory to save the plot.
@@ -421,7 +421,7 @@ def plot_sample_waterfall(
 
     # Aggregate text dimensions into a single value
     text_shap_total = shap_values[sample_idx, :TEXT_DIM].sum()
-    behavior_shap = shap_values[sample_idx, TEXT_DIM:]
+    behavior_shap = shap_values[sample_idx, TEXT_DIM : TEXT_DIM + len(FEATURE_NAMES)]
 
     # Combined feature names and values for the waterfall
     feature_names_short = ["Text Branch\n(RoBERTa, 768-dim)"] + [

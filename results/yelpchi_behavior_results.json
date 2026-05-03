@@ -1,0 +1,25 @@
+{
+  "dataset": "yelpchi",
+  "model": "BehaviorMLP",
+  "architecture": {
+    "input_dim": 16,
+    "hidden_dims": [
+      64,
+      32
+    ],
+    "dropout": 0.3
+  },
+  "training": {
+    "lr": 0.001,
+    "batch_size": 256,
+    "epochs": 50,
+    "gamma": 2.0
+  },
+  "test_metrics": {
+    "loss": 0.039119195400012866,
+    "accuracy": 0.627638737758433,
+    "auc_roc": 0.7830798744937288,
+    "macro_f1": 0.5712033442238988
+  },
+  "best_val_auc": 0.7830798744937288
+}

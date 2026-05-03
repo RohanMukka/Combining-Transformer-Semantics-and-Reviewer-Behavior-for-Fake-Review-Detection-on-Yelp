@@ -1,51 +1,51 @@
 {
-  "dataset": "yelpzip",
-  "n_train": 128745,
-  "n_test": 32185,
+  "dataset": "yelpchi",
+  "n_train": 36764,
+  "n_test": 9190,
   "models": [
     {
       "model": "TF-IDF + SVM",
       "metrics": {
-        "macro_f1": 0.6960112114505559,
-        "f1_fake": 0.7191893530413696,
-        "f1_genuine": 0.6728330698597423,
-        "precision_fake": 0.6931166879973291,
-        "recall_fake": 0.7473002159827213,
-        "precision_genuine": 0.7036724356268468,
-        "recall_genuine": 0.6445833601856029,
-        "accuracy": 0.6977784682305421,
-        "auc_roc": 0.7696610674445652,
-        "train_time_seconds": 58.14
+        "macro_f1": 0.4576812025058566,
+        "f1_fake": 0.006476683937823834,
+        "f1_genuine": 0.9088857210738893,
+        "precision_fake": 0.625,
+        "recall_fake": 0.0032552083333333335,
+        "precision_genuine": 0.8332607275103463,
+        "recall_genuine": 0.9996080480794356,
+        "accuracy": 0.8330794341675735,
+        "auc_roc": 0.7295734613845701,
+        "train_time_seconds": 12.5
       }
     },
     {
       "model": "TF-IDF + LogReg",
       "metrics": {
-        "macro_f1": 0.7115088308142062,
-        "f1_fake": 0.7265048142241125,
-        "f1_genuine": 0.6965128474043,
-        "precision_fake": 0.7154741128563118,
-        "recall_fake": 0.7378809695224382,
-        "precision_genuine": 0.7086362120706903,
-        "recall_genuine": 0.6847973190694078,
-        "accuracy": 0.7122883330744135,
-        "auc_roc": 0.788241310740897,
-        "train_time_seconds": 49.35
+        "macro_f1": 0.6381037150241925,
+        "f1_fake": 0.43419740777667,
+        "f1_genuine": 0.842010022271715,
+        "precision_fake": 0.3517770597738288,
+        "recall_fake": 0.5670572916666666,
+        "precision_genuine": 0.9009532320524277,
+        "recall_genuine": 0.7903057224980402,
+        "accuracy": 0.7529923830250272,
+        "auc_roc": 0.7499872836779243,
+        "train_time_seconds": 10.51
       }
     },
     {
       "model": "Behavior + RandomForest",
       "metrics": {
-        "macro_f1": 0.45626675926700944,
-        "f1_fake": 0.5912835702018567,
-        "f1_genuine": 0.3212499483321622,
-        "precision_fake": 0.5052533072440342,
-        "recall_fake": 0.7126229901607871,
-        "precision_genuine": 0.4479022591055786,
-        "recall_genuine": 0.25043500676677194,
-        "accuracy": 0.48979338201025324,
-        "auc_roc": 0.49612243561599045,
-        "train_time_seconds": 2.04
+        "macro_f1": 0.4876281610767407,
+        "f1_fake": 0.07683863885839737,
+        "f1_genuine": 0.898417683295084,
+        "precision_fake": 0.24475524475524477,
+        "recall_fake": 0.045572916666666664,
+        "precision_genuine": 0.8353548966756514,
+        "recall_genuine": 0.9717794617193625,
+        "accuracy": 0.816974972796518,
+        "auc_roc": 0.6724103614123335,
+        "train_time_seconds": 0.78
       }
     }
   ]

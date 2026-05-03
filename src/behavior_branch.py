@@ -280,6 +280,13 @@ def train_behavior_branch(
     train_feats = apply_scaler(train_feats_raw, scaler)
     test_feats = apply_scaler(test_feats_raw, scaler)
 
+    # Pad if model expects 16 dims (like the paper architecture)
+    if input_dim > train_feats.shape[1]:
+        pad_train = np.zeros((train_feats.shape[0], input_dim - train_feats.shape[1]), dtype=np.float32)
+        pad_test = np.zeros((test_feats.shape[0], input_dim - test_feats.shape[1]), dtype=np.float32)
+        train_feats = np.hstack([train_feats, pad_train])
+        test_feats = np.hstack([test_feats, pad_test])
+
     y_train = train_df["label"].values
     y_test = test_df["label"].values
 

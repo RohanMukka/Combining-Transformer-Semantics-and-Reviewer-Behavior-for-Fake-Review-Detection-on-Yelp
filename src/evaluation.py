@@ -494,7 +494,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run temporal cross-validation evaluation for ReviewGuard models."
     )
-    parser.add_argument("--dataset", default="yelpzip", choices=["yelpzip", "yelpnyc"])
+    parser.add_argument("--dataset", default="yelpchi", choices=["yelpzip", "yelpnyc", "yelpchi"])
     parser.add_argument("--n_folds", type=int, default=5)
     parser.add_argument("--config", default="configs/default_config.yaml")
     args = parser.parse_args()

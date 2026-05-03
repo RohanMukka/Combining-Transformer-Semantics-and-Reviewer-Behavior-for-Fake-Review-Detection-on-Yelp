@@ -582,7 +582,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run SHAP explainability analysis for ReviewGuard."
     )
-    parser.add_argument("--dataset", default="yelpzip", choices=["yelpzip", "yelpnyc"])
+    parser.add_argument("--dataset", default="yelpchi", choices=["yelpzip", "yelpnyc", "yelpchi"])
     parser.add_argument("--n_samples", type=int, default=500,
                         help="Number of samples to explain")
     parser.add_argument("--config", default="configs/default_config.yaml")

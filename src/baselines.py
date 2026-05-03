@@ -454,7 +454,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Train and evaluate baseline classifiers for fake review detection."
     )
-    parser.add_argument("--dataset", default="yelpzip", choices=["yelpzip", "yelpnyc"])
+    parser.add_argument("--dataset", default="yelpchi", choices=["yelpzip", "yelpnyc", "yelpchi"])
     parser.add_argument("--config", default="configs/default_config.yaml")
     args = parser.parse_args()
 

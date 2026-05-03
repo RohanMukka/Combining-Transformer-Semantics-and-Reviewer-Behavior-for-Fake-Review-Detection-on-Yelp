@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Train all ReviewGuard models and compare results."
     )
-    parser.add_argument("--dataset", default="yelpzip", choices=["yelpzip", "yelpnyc"])
+    parser.add_argument("--dataset", default="yelpchi", choices=["yelpzip", "yelpnyc", "yelpchi"])
     parser.add_argument("--config", default="configs/default_config.yaml")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(

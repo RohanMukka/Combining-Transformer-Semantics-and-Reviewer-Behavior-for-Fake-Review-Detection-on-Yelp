@@ -644,7 +644,7 @@ if __name__ == "__main__":
         default="train",
         help="'train' to fine-tune, 'extract' to extract [CLS] embeddings",
     )
-    parser.add_argument("--dataset", default="yelpzip", choices=["yelpzip", "yelpnyc"])
+    parser.add_argument("--dataset", default="yelpchi", choices=["yelpzip", "yelpnyc", "yelpchi"])
     parser.add_argument("--config", default="configs/default_config.yaml")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

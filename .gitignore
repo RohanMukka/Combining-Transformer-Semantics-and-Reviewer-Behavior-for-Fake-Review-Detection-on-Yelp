@@ -19,5 +19,5 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Data and Scratch files
-data/
+# data/
 scratch_fix_data.py

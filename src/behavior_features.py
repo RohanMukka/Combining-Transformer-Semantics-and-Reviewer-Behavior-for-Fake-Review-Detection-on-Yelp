@@ -458,6 +458,13 @@ def run_feature_pipeline(
 
     normalised = apply_scaler(raw_features, scaler)
 
+    # Pad to match behavior_dim from config (e.g., 16 for paper matching)
+    target_dim = config.get("behavior_branch", {}).get("input_dim", 6)
+    if target_dim > normalised.shape[1]:
+        logger.info(f"Padding behavior features from {normalised.shape[1]} to {target_dim} dims")
+        padding = np.zeros((normalised.shape[0], target_dim - normalised.shape[1]), dtype=np.float32)
+        normalised = np.hstack([normalised, padding])
+
     # Save raw and normalised features
     raw_features.to_parquet(
         features_dir / f"{dataset_name}_{split}_raw_features.parquet"
@@ -466,7 +473,7 @@ def run_feature_pipeline(
         features_dir / f"{dataset_name}_{split}_features.npy",
         normalised,
     )
-    logger.info(f"Features saved to {features_dir}/")
+    logger.info(f"Features saved to {features_dir}/ with shape {normalised.shape}")
 
     # Distribution plots (for training split only)
     if split == "train" and "label" in df.columns:

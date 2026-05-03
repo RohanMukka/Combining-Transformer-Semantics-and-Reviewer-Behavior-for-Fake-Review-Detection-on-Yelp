@@ -52,6 +52,7 @@ logger = logging.getLogger(__name__)
 DATASET_URLS: Dict[str, str] = {
     "yelpzip": "http://odds.cs.stonybrook.edu/yelpzip-dataset/",
     "yelpnyc": "http://odds.cs.stonybrook.edu/yelpnyc-dataset/",
+    "yelpchi": "http://odds.cs.stonybrook.edu/yelpchi-dataset/",
 }
 
 # Fallback: pre-processed CSVs from GitHub mirrors commonly used in research
@@ -63,6 +64,10 @@ FALLBACK_URLS: Dict[str, str] = {
     "yelpnyc": (
         "https://raw.githubusercontent.com/fake-review-detection/datasets/"
         "main/YelpNYC/reviews.csv"
+    ),
+    "yelpchi": (
+        "https://raw.githubusercontent.com/fake-review-detection/datasets/"
+        "main/YelpChi/reviews.csv"
     ),
 }
 
@@ -79,6 +84,13 @@ YELPNYC_STATS = {
     "fake_fraction": 0.101,  # ~10.1% fake
     "n_users": 160_225,
     "n_products": 923,
+}
+
+YELPCHI_STATS = {
+    "total_reviews": 45_954,
+    "fake_fraction": 0.145,  # 14.5% fake
+    "n_users": 38_000,       # Approximate based on dataset structure
+    "n_products": 200,       # Approximate
 }
 
 
@@ -136,7 +148,12 @@ def _generate_synthetic_dataset(
     Returns:
         DataFrame with columns matching the unified schema.
     """
-    stats = YELPZIP_STATS if dataset_name == "yelpzip" else YELPNYC_STATS
+    if dataset_name == "yelpzip":
+        stats = YELPZIP_STATS
+    elif dataset_name == "yelpnyc":
+        stats = YELPNYC_STATS
+    else:
+        stats = YELPCHI_STATS
     n = stats["total_reviews"]
     n_users = stats["n_users"]
     n_products = stats["n_products"]
@@ -512,7 +529,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dataset",
-        choices=["yelpzip", "yelpnyc", "all"],
+        choices=["yelpzip", "yelpnyc", "yelpchi", "all"],
         default="all",
         help="Dataset to process (default: all)",
     )
@@ -537,6 +554,6 @@ if __name__ == "__main__":
         logger.warning("Config not found; using defaults.")
         cfg = {}
 
-    datasets = ["yelpzip", "yelpnyc"] if args.dataset == "all" else [args.dataset]
+    datasets = ["yelpzip", "yelpnyc", "yelpchi"] if args.dataset == "all" else [args.dataset]
     run_full_pipeline(datasets=datasets, config=cfg)
     logger.info("Data pipeline complete.")

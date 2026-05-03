@@ -178,7 +178,6 @@ def build_rf_pipeline(config: Dict) -> Pipeline:
     rf = RandomForestClassifier(
         n_estimators=bl_cfg.get("rf_n_estimators", 200),
         max_depth=bl_cfg.get("rf_max_depth", 15),
-        class_weight="balanced",
         n_jobs=-1,
         random_state=42,
     )

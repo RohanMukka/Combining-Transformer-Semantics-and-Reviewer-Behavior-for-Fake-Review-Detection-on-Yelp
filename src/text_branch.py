@@ -611,13 +611,25 @@ def extract_and_save_embeddings(
         df, cutoff_fraction=config.get("data", {}).get("temporal_cutoff_fraction", 0.8)
     )
 
-    for split, split_df in [("train", train_df), ("test", test_df)]:
-        logger.info(f"Extracting embeddings for {split} split ({len(split_df):,} reviews)…")
-        texts = split_df["text"].fillna("").tolist()
-        emb = extract_cls_embeddings(model, texts, tokenizer, device, batch_size, max_length)
-        save_path = features_dir / f"{dataset_name}_{split}_text_emb.npy"
-        np.save(save_path, emb)
-        logger.info(f"Embeddings saved → {save_path} {emb.shape}")
+    logger.info(f"Extracting embeddings for train split ({len(train_df):,} reviews)…")
+    train_texts = train_df["text"].fillna("").tolist()
+    train_emb = extract_cls_embeddings(model, train_texts, tokenizer, device, batch_size, max_length)
+
+    logger.info(f"Extracting embeddings for test split ({len(test_df):,} reviews)…")
+    test_texts = test_df["text"].fillna("").tolist()
+    test_emb = extract_cls_embeddings(model, test_texts, tokenizer, device, batch_size, max_length)
+
+    target_dim = tb_cfg.get("embedding_dim", 768)
+    if target_dim < 768:
+        logger.info(f"Applying PCA to reduce embeddings from 768 to {target_dim} dimensions")
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=target_dim, random_state=42)
+        train_emb = pca.fit_transform(train_emb).astype(np.float32)
+        test_emb = pca.transform(test_emb).astype(np.float32)
+
+    np.save(features_dir / f"{dataset_name}_train_text_emb.npy", train_emb)
+    np.save(features_dir / f"{dataset_name}_test_text_emb.npy", test_emb)
+    logger.info(f"Embeddings saved to {features_dir} with shape {train_emb.shape}")
 
 
 # ─── CLI ──────────────────────────────────────────────────────────────────────

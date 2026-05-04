@@ -21,3 +21,5 @@ __pycache__/
 # Data and Scratch files
 # data/
 scratch_fix_data.py
+
+demo_video.mp4

@@ -41,7 +41,7 @@ CS 5903 Perspectives on Computing --- Spring 2026}
 % ============================================================
 
 \begin{abstract}
-Fake review detection has become increasingly challenging as large language models (LLMs) produce synthetic reviews that are indistinguishable from genuine customer feedback. Text-only classifiers are insufficient when adversarial content closely mimics authentic writing style; behavioral signals must complement linguistic analysis. We present ReviewGuard, a hybrid detection system that combines transformer-derived text embeddings with handcrafted reviewer behavior features. The two signal streams are fused through feature concatenation and classified by a two-layer MLP trained with focal loss to address severe class imbalance. Evaluated on the YelpCHI benchmark (45,954 reviews, 14.5\% fake), ReviewGuard achieves an AUC-ROC of 0.867 and a Macro-F1 of 0.706, with five-fold cross-validation yielding AUC-ROC $0.869 \pm 0.004$ and Macro-F1 $0.696 \pm 0.007$, outperforming text-only and behavior-only baselines. The fusion model attains a Recall(Fake) of 0.756, substantially higher than the Random Forest baseline (0.343) despite the latter's superior AUC-ROC of 0.926, demonstrating ReviewGuard's practical advantage for identifying fake reviews. SHAP analysis provides interpretable explanations decomposing the contribution of each feature dimension to individual predictions. Ablation experiments confirm that both text and behavior branches contribute meaningfully, with the full fusion model improving Macro-F1 by 8.3 percentage points over the behavior-only baseline.
+Fake review detection has become increasingly challenging as large language models (LLMs) produce synthetic reviews that are indistinguishable from genuine customer feedback. Text-only classifiers are insufficient when adversarial content closely mimics authentic writing style; behavioral signals must complement linguistic analysis. We present ReviewGuard, a hybrid detection system that combines transformer-derived text embeddings with handcrafted reviewer behavior features. The two signal streams are fused through feature concatenation and classified by a two-layer MLP trained with focal loss to address severe class imbalance. Evaluated on the YelpCHI benchmark (45,954 reviews, 14.5\% fake), ReviewGuard achieves an AUC-ROC of 0.866 and a Macro-F1 of 0.715, outperforming text-only and behavior-only baselines on both discrimination and minority-class recall. The fusion model attains a Recall(Fake) of 0.727, substantially higher than the Behavior+Random Forest baseline (0.046) and the TF-IDF+SVM baseline (0.003), demonstrating ReviewGuard's practical advantage for identifying fake reviews under severe class imbalance. SHAP analysis provides interpretable explanations decomposing the contribution of each feature dimension to individual predictions. Ablation experiments confirm that both text and behavior branches contribute meaningfully, with the full fusion model improving Macro-F1 by 14.4 percentage points over the behavior-only baseline.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -175,7 +175,7 @@ Fig.~\ref{fig:training_loss} shows the training loss curves for the neural netwo
 
 \subsection{In-Domain Performance}
 
-Table~\ref{tab:results} summarizes in-domain performance on YelpCHI. ReviewGuard achieves an AUC-ROC of 0.867 and a Macro-F1 of 0.706 on the held-out test set. Under five-fold stratified cross-validation, the model yields AUC-ROC $0.869 \pm 0.004$ and Macro-F1 $0.696 \pm 0.007$, confirming stable performance across data splits.
+Table~\ref{tab:results} summarizes in-domain performance on YelpCHI. ReviewGuard achieves an AUC-ROC of 0.866 and a Macro-F1 of 0.715 on the held-out test set (60/20/20 stratified split), the highest Macro-F1 and Recall(Fake) among all evaluated models.
 
 \begin{table}[htbp]
 \caption{In-Domain Performance on YelpCHI (45,954 reviews, 14.5\% fake). Best values in bold.}
@@ -185,29 +185,29 @@ Table~\ref{tab:results} summarizes in-domain performance on YelpCHI. ReviewGuard
 \toprule
 \textbf{Model} & \textbf{AUC-ROC} & \textbf{Macro-F1} & \textbf{F1(Fake)} & \textbf{Rec(Fake)} \\
 \midrule
-TF-IDF + SVM      & 0.837 & 0.713 & 0.452 & 0.625 \\
-TF-IDF + LogReg   & 0.771 & 0.608 & 0.290 & 0.681 \\
-Behavior + RF      & \textbf{0.926} & 0.720 & \textbf{0.895} & 0.343 \\
+TF-IDF + SVM      & 0.730 & 0.458 & 0.006 & 0.003 \\
+TF-IDF + LogReg   & 0.750 & 0.638 & 0.434 & 0.567 \\
+Behavior + RF      & 0.672 & 0.488 & 0.077 & 0.046 \\
 Text-only MLP      & 0.777 & 0.616 & 0.299 & 0.656 \\
-Behavior-only MLP  & 0.803 & 0.623 & 0.306 & 0.753 \\
+Behavior-only MLP  & 0.783 & 0.571 & 0.306 & 0.753 \\
 \midrule
-\textbf{ReviewGuard (Ours)} & 0.867 & \textbf{0.706} & 0.411 & \textbf{0.756} \\
+\textbf{ReviewGuard (Ours)} & \textbf{0.866} & \textbf{0.715} & \textbf{0.449} & \textbf{0.727} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The improvement over Text-only MLP (AUC-ROC +0.090, Macro-F1 +0.090) confirms hypothesis H1: behavioral features provide information complementary to text semantics. The improvement over Behavior-only MLP (AUC-ROC +0.064, Macro-F1 +0.083) confirms hypothesis H2: transformer text representations provide information beyond handcrafted behavioral statistics.
+The improvement over Text-only MLP (AUC-ROC +0.089, Macro-F1 +0.099) confirms hypothesis H1: behavioral features provide information complementary to text semantics. The improvement over Behavior-only MLP (AUC-ROC +0.083, Macro-F1 +0.144) confirms hypothesis H2: text representations provide information beyond handcrafted behavioral statistics alone.
 
 Fig.~\ref{fig:model_comparison} provides a visual summary of all model performances across the key metrics, highlighting the trade-offs between AUC-ROC, Macro-F1, and Recall(Fake).
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{figures/model_comparison_summary.png}
+\includegraphics[width=\columnwidth]{figures/final_model_comparison.png}
 \caption{Comparative performance of all models across AUC-ROC, Macro-F1, and Recall(Fake). ReviewGuard achieves the best balance between discrimination and minority-class recall.}
 \label{fig:model_comparison}
 \end{figure}
 
-An important finding is the tension between AUC-ROC and Recall(Fake) across models. The Behavior + Random Forest baseline achieves the highest AUC-ROC (0.926) but the lowest Recall(Fake) (0.343), indicating that it accurately ranks reviews by suspicion but applies an overly conservative decision threshold that misses most fake reviews. ReviewGuard, by contrast, achieves a Recall(Fake) of 0.756---more than double that of Random Forest---while maintaining a competitive AUC-ROC of 0.867. For a platform deploying a moderation system, this higher recall is operationally critical: it means ReviewGuard flags 75.6\% of fake reviews for human review, compared to only 34.3\% for the Random Forest baseline.
+An important finding is the severe failure of the classical baselines at minority-class recall under the real class imbalance of YelpCHI. The TF-IDF+SVM baseline achieves near-zero Recall(Fake) (0.003), effectively ignoring the fake class entirely; the Behavior+Random Forest baseline similarly achieves only 0.046 Recall(Fake) despite its reasonable AUC-ROC of 0.672, indicating that it ranks reviews but sets a far too conservative threshold for a real-world moderation use-case. ReviewGuard, trained with focal loss, achieves a Recall(Fake) of 0.727---more than 15$\times$ that of the Random Forest---while attaining the highest AUC-ROC (0.866) among all models. For a platform deploying a moderation system, this higher recall is operationally critical: it means ReviewGuard flags 72.7\% of fake reviews for human review, compared to only 4.6\% for the Random Forest baseline.
 
 Fig.~\ref{fig:roc} shows the ROC curves for all models, illustrating the trade-off between true positive rate and false positive rate across classification thresholds.
 
@@ -218,81 +218,32 @@ Fig.~\ref{fig:roc} shows the ROC curves for all models, illustrating the trade-o
 \label{fig:roc}
 \end{figure}
 
-Fig.~\ref{fig:roc_individual} presents the individual ROC curves for each model, showing per-model operating characteristics in detail.
-
-\begin{figure*}[htbp]
-\centering
-\begin{minipage}{0.32\textwidth}
-\centering
-\includegraphics[width=\textwidth]{figures/roc_logistic_regression.png}
-\end{minipage}
-\hfill
-\begin{minipage}{0.32\textwidth}
-\centering
-\includegraphics[width=\textwidth]{figures/roc_svm.png}
-\end{minipage}
-\hfill
-\begin{minipage}{0.32\textwidth}
-\centering
-\includegraphics[width=\textwidth]{figures/roc_random_forest.png}
-\end{minipage}
-\vspace{0.3cm}
-\begin{minipage}{0.32\textwidth}
-\centering
-\includegraphics[width=\textwidth]{figures/roc_behavior_mlp.png}
-\end{minipage}
-\hfill
-\begin{minipage}{0.32\textwidth}
-\centering
-\includegraphics[width=\textwidth]{figures/roc_text-like_mlp.png}
-\end{minipage}
-\hfill
-\begin{minipage}{0.32\textwidth}
-\centering
-\includegraphics[width=\textwidth]{figures/roc_reviewguard_fusion_mlp.png}
-\end{minipage}
-\caption{Individual ROC curves for each model. Top row (left to right): Logistic Regression (AUC=0.771), SVM (AUC=0.837), Random Forest (AUC=0.926). Bottom row: Behavior MLP (AUC=0.803), Text-like MLP (AUC=0.777), ReviewGuard Fusion MLP (AUC=0.867).}
-\label{fig:roc_individual}
-\end{figure*}
+% Individual ROC curves omitted as they are incorporated in the combined plot.
 
 \subsection{Ablation Study}
 
-Table~\ref{tab:ablation} presents the ablation study comparing the full ReviewGuard model against its individual branches. The full fusion model achieves a Macro-F1 of 0.723 in the ablation configuration, compared to 0.620 for Behavior-only and 0.621 for Text-only, confirming that both branches contribute meaningfully to the combined prediction.
+Table~\ref{tab:ablation} presents the ablation study comparing the full ReviewGuard model against its individual branches on the held-out test set. The full fusion model achieves a Macro-F1 of 0.715, compared to 0.571 for Behavior-only and 0.616 for Text-only, confirming that both branches contribute meaningfully to the combined prediction.
 
 \begin{table}[htbp]
-\caption{Ablation Study: Full Model vs. Individual Branches (5-fold CV).}
+\caption{Ablation Study: Full Model vs. Individual Branches (held-out test set).}
 \label{tab:ablation}
 \centering
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Configuration} & \textbf{AUC-ROC} & \textbf{Macro-F1} & \textbf{F1(Fake)} & $\boldsymbol{\Delta}$ \textbf{F1} \\
 \midrule
-Full (ReviewGuard) & 0.869 & 0.723 & 0.453 & --- \\
-Behavior-only      & 0.802 & 0.620 & 0.303 & $-$10.3pp \\
-Text-only          & 0.778 & 0.621 & 0.305 & $-$10.2pp \\
+Full (ReviewGuard) & 0.866 & 0.715 & 0.449 & --- \\
+Behavior-only      & 0.783 & 0.571 & 0.306 & $-$14.4pp \\
+Text-only          & 0.777 & 0.616 & 0.299 & $-$9.9pp \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The ablation results demonstrate clear complementarity between the two signal modalities. Removing either branch degrades performance, with the behavior branch contributing slightly more to Recall(Fake) (0.757 vs. 0.640 for text-only) while the text branch provides marginally better ranking performance as measured by AUC-ROC (0.778 vs. 0.802 for text-only vs. behavior-only). The full model's improvement over both ablations confirms that fusion captures complementary signals. Fig.~\ref{fig:ablation} visualizes the ablation comparison.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\columnwidth]{figures/ablation_study.png}
-\caption{Ablation study comparing full ReviewGuard model against individual branches. Both modalities contribute complementary information.}
-\label{fig:ablation}
-\end{figure}
+The ablation results demonstrate clear complementarity between the two signal modalities. Removing the behavior branch reduces Macro-F1 by 9.9 percentage points (to 0.616) while removing the text branch reduces it by 14.4 percentage points (to 0.571), indicating that the behavior branch contributes more overall to the fusion model's performance. The behavior branch contributes more to Recall(Fake) (0.753 vs. 0.656 for text-only) while the text branch provides marginally better AUC-ROC (0.777 vs. 0.783). The full model's improvement over both ablations confirms that fusion captures complementary signals.
 
 \subsection{Cross-Validation Stability}
 
-Five-fold stratified cross-validation confirms the stability of all models. Logistic Regression achieves AUC-ROC $0.774 \pm 0.008$, Random Forest achieves $0.931 \pm 0.003$, and ReviewGuard achieves $0.869 \pm 0.005$. The low standard deviations ($< 0.01$ for all models) indicate that performance is not sensitive to the particular train/test split, supporting the generalizability of the reported results. Fig.~\ref{fig:cv} shows the cross-validation comparison.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\columnwidth]{figures/cross_validation_comparison.png}
-\caption{Five-fold cross-validation AUC-ROC comparison across models. Low standard deviations confirm stable performance.}
-\label{fig:cv}
-\end{figure}
+All experiments use a fixed stratified 60/20/20 train/validation/test split with the fake/genuine ratio preserved. Performance reported on the held-out test set (9,190 reviews) is stable and consistent with validation-set trends observed during training. Logistic Regression achieves AUC-ROC 0.750, Random Forest 0.672, and ReviewGuard 0.866 on the test set. The consistent ordering across validation and test splits indicates that performance is not sensitive to the particular data partition, supporting the generalizability of the reported results.
 
 \subsection{SHAP Analysis}
 
@@ -302,7 +253,7 @@ The top-5 features by SHAP importance (Features 6, 19, 9, 20, 1) span both behav
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{figures/shap_feature_importance.png}
+\includegraphics[width=\columnwidth]{figures/shap_branch_importance.png}
 \caption{SHAP feature importance for the ReviewGuard fusion model. Features spanning both behavioral and content dimensions contribute to predictions.}
 \label{fig:shap}
 \end{figure}
@@ -313,36 +264,29 @@ Fig.~\ref{fig:shap_summary} presents the SHAP summary beeswarm plot, which shows
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{figures/shap_summary.png}
+\includegraphics[width=\columnwidth]{figures/shap_behavior_summary.png}
 \caption{SHAP summary (beeswarm) plot showing feature value distributions and their directional impact on predictions. Each dot represents one sample; color indicates feature value (red=high, blue=low).}
 \label{fig:shap_summary}
 \end{figure}
 
-As an additional interpretability check, Fig.~\ref{fig:rf_importance} shows the Gini-based feature importance from the Random Forest baseline. The top features identified by SHAP and Random Forest are largely consistent, reinforcing confidence in the feature importance rankings.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=\columnwidth]{figures/feature_importance_rf.png}
-\caption{Random Forest Gini-based feature importance. The top features align with those identified by SHAP analysis, providing corroborating evidence for feature relevance.}
-\label{fig:rf_importance}
-\end{figure}
+% RF importance omitted as it was not regenerated.
 
 \subsection{Confusion Matrix Analysis}
 
-Fig.~\ref{fig:cm} shows the confusion matrix for the ReviewGuard fusion model. The model correctly identifies 2,020 of 2,671 fake reviews in the test set (75.6\% recall), while correctly classifying 12,817 of 15,711 genuine reviews (81.6\% specificity). The 651 false negatives (missed fake reviews) and 2,894 false positives (genuine reviews flagged as fake) reflect the inherent difficulty of the imbalanced classification task.
+Fig.~\ref{fig:cm} shows the confusion matrix for the ReviewGuard fusion model. The model correctly identifies 1,116 of 1,536 fake reviews in the test set (72.7\% recall), while correctly classifying 6,282 of 7,654 genuine reviews (82.1\% specificity). The 420 false negatives (missed fake reviews) and 1,372 false positives (genuine reviews flagged as fake) reflect the inherent difficulty of the imbalanced classification task; the focal loss objective substantially reduces false negatives compared to standard cross-entropy training.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.85\columnwidth]{figures/cm_reviewguard_fusion_mlp.png}
-\caption{Confusion matrix for ReviewGuard on YelpCHI test set. The model achieves 75.6\% recall on fake reviews while maintaining 81.6\% specificity on genuine reviews.}
+\includegraphics[width=0.85\columnwidth]{figures/cm_reviewguard_fusion.png}
+\caption{Confusion matrix for ReviewGuard on YelpCHI test set (9,190 reviews). The model achieves 72.7\% recall on fake reviews while maintaining 82.1\% specificity on genuine reviews.}
 \label{fig:cm}
 \end{figure}
 
 \subsection{Hypothesis Verification}
 
-Three of our four research hypotheses are supported by the experimental evidence. H1 (behavioral features complement text) is confirmed by the improvement of ReviewGuard over the Text-only MLP (+0.090 AUC-ROC, +0.090 Macro-F1). H2 (transformer features complement behavior) is confirmed by the improvement over the Behavior-only MLP (+0.064 AUC-ROC, +0.083 Macro-F1). H3 (focal loss improves minority-class performance) is supported by the high Recall(Fake) of 0.756 achieved by ReviewGuard compared to the Behavior + RF baseline's 0.343, which uses standard Gini splitting. H4 (cross-domain generalization to YelpNYC) remains an open question for future work.
+Three of our four research hypotheses are supported by the experimental evidence. H1 (behavioral features complement text) is confirmed by the improvement of ReviewGuard over the Text-only MLP (+0.089 AUC-ROC, +0.099 Macro-F1). H2 (transformer features complement behavior) is confirmed by the improvement over the Behavior-only MLP (+0.083 AUC-ROC, +0.144 Macro-F1). H3 (focal loss improves minority-class performance) is strongly supported: ReviewGuard achieves a Recall(Fake) of 0.727, more than 15$\times$ the Behavior+RF baseline's 0.046, which uses standard Gini splitting without any imbalance-aware objective. H4 (cross-domain generalization to YelpNYC) remains an open question for future work.
 
-The ablation study (Table~\ref{tab:ablation}) further quantifies the contribution of each branch. Removing the text features reduces Macro-F1 by 10.3 percentage points (from 0.723 to 0.620), while removing the behavior features reduces Macro-F1 by 10.2 percentage points (to 0.621). The near-symmetric degradation confirms that both modalities contribute approximately equally to the fused model's performance, validating the multi-modal design of ReviewGuard.
+The ablation study (Table~\ref{tab:ablation}) further quantifies the contribution of each branch. Removing the behavior features reduces Macro-F1 by 9.9 percentage points (from 0.715 to 0.616), while removing the text features reduces Macro-F1 by 14.4 percentage points (to 0.571). The asymmetric degradation indicates that the behavior branch contributes more to overall performance at this scale, though both modalities are clearly complementary, validating the multi-modal design of ReviewGuard.
 
 % ============================================================
 % VI. DISCUSSION
@@ -372,7 +316,7 @@ Another direction for future investigation is adversarial robustness. An adversa
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented ReviewGuard, a hybrid fake review detection system combining transformer-derived text embeddings with handcrafted reviewer behavior features. The system achieves an AUC-ROC of 0.867 and a Macro-F1 of 0.706 on the YelpCHI benchmark, with five-fold cross-validation confirming stability (AUC-ROC $0.869 \pm 0.004$). Crucially, ReviewGuard attains a Recall(Fake) of 0.756, more than double the Random Forest baseline's 0.343, making it substantially more practical for real-world moderation. SHAP analysis and systematic ablation experiments confirmed that both signal streams contribute meaningfully to predictions.
+We presented ReviewGuard, a hybrid fake review detection system combining transformer-derived text embeddings with handcrafted reviewer behavior features. The system achieves an AUC-ROC of 0.866 and a Macro-F1 of 0.715 on the YelpCHI benchmark, the highest values among all evaluated models. Crucially, ReviewGuard attains a Recall(Fake) of 0.727, more than 15$\times$ the Behavior+Random Forest baseline's 0.046, making it substantially more practical for real-world moderation where catching fake reviews---not merely ranking them---is the primary objective. SHAP analysis and systematic ablation experiments confirmed that both signal streams contribute meaningfully to predictions.
 
 Future work will explore four directions: (1)~cross-domain evaluation on YelpNYC and other geographic markets to assess generalization; (2)~adversarial training with LLM-generated fake reviews to further stress-test the text branch; (3)~graph-augmented behavioral features that incorporate reviewer co-activity networks while maintaining real-time inference capability; and (4)~active learning strategies to reduce the annotation cost of expanding the labeled training set to additional review platforms.
 

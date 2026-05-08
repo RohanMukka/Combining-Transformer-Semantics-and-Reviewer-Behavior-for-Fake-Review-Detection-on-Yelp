@@ -145,7 +145,9 @@ A key design choice is to apply SHAP at the level of the MLP, treating the conca
 
 The primary evaluation dataset is YelpCHI~\cite{rayana2015collective}, a benchmark constructed by Rayana and Akoglu from Yelp's Chicago restaurant and hotel listings. The version used in our experiments contains 45,954 reviews with 32 pre-computed behavioral and metadata features; 14.5\% of reviews (6,677) are labeled as fake based on Yelp's proprietary spam filter, which was subsequently validated through crowdsourcing and expert annotation. This dataset is the de facto standard benchmark for spam review detection due to its realistic label distribution and the availability of reviewer metadata.
 
-Fig.~\ref{fig:eda_distributions} provides an exploratory analysis of the dataset, illustrating the distinct distributional differences between genuine and fake reviewers across key behavioral features. These visual disparities strongly motivate the inclusion of the behavior branch in our architecture.
+To better understand the discriminative power of the behavior modality, we engineered and analyzed six explicit reviewer behavioral traits: (1)~\textit{avg\_star\_rating}, the reviewer's mean star rating; (2)~\textit{review\_count}, total reviews posted; (3)~\textit{burst\_ratio}, the fraction of reviews posted within rapid 30-day windows; (4)~\textit{rating\_deviation}, the absolute difference between the reviewer's rating and the business average; (5)~\textit{category\_diversity}, the ratio of unique businesses reviewed to total reviews; and (6)~\textit{account\_age\_at\_review}. 
+
+Fig.~\ref{fig:eda_distributions} provides an exploratory analysis of these six traits, illustrating the distinct distributional differences between genuine and fake reviewers. Notably, the \textit{category\_diversity} density curve for fake reviewers collapses into a zero-variance spike at 1.0 (and is thus omitted by the density estimator), as fake reviewers almost never waste effort reviewing the exact same business twice. These visual disparities strongly motivate the inclusion of the behavior branch in our architecture.
 
 \begin{figure}[htbp]
 \centering

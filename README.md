@@ -176,6 +176,22 @@ python -m src.data_loader --dataset yelpchi
 
 ---
 
+## Hardware & Performance
+
+ReviewGuard is designed for efficiency, but the **Text Branch (RoBERTa)** is computationally intensive.
+
+| Phase | Est. Time (GPU) | Est. Time (CPU) | Requirement |
+|-------|-----------------|-----------------|-------------|
+| **Data Preprocessing** | ~1 min | ~1 min | Low Memory |
+| **RoBERTa Fine-tuning** | ~15-20 mins | ~4-6 hours | 8GB+ VRAM (GPU) / 16GB+ RAM (CPU) |
+| **Embedding Extraction**| ~5-10 mins | ~1-2 hours | 8GB+ VRAM (GPU) |
+| **Fusion Model Training**| ~2-3 mins | ~5 mins | Low |
+| **Full Orchestration** | **~25-30 mins** | **~6-8 hours** | **GPU Recommended** |
+
+*Note: Times based on the YelpCHI dataset (45k reviews). For the quickest evaluation, use a CUDA-enabled GPU. The code automatically detects and utilizes a GPU if available.*
+
+---
+
 ## Usage Guide
 
 ### Step 1: Compute Behavior Features

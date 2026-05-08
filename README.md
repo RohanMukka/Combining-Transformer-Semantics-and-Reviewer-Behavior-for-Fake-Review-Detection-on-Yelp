@@ -49,10 +49,14 @@ Evaluated on the **YelpCHI** benchmark (45,954 reviews, 14.5% fake), ReviewGuard
                                 P(fake review) ∈ [0, 1]
 ```
 
-**Training details:**
-- Fusion MLP: Adam (lr=1e-3), 30 epochs
-- Loss: Focal Loss with γ=2, class-frequency-weighted α
-- Evaluation: 5-fold stratified cross-validation (no data leakage)
+**Architecture details:**
+- **Text Encoder**: Fine-tuned **RoBERTa-base** (768-dim [CLS] token)
+- **Text Compression**: PCA reduction from 768 to 16 dimensions
+- **Behavior Branch**: 16-dimensional standardized reviewer traits
+- **Fusion MLP**: 32-dimensional input (16 text + 16 behavior)
+- **Model Parameters**: Two-layer MLP (256, 64) with ReLU and Dropout (0.3)
+- **Optimization**: Focal Loss (γ=2) to handle severe class imbalance
+- **Evaluation**: 5-fold stratified cross-validation (no data leakage)
 
 ---
 

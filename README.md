@@ -7,9 +7,9 @@
 
 ## Abstract
 
-ReviewGuard is a hybrid fake review detection system that combines **text semantics** with **handcrafted reviewer behavioral signals** to identify fraudulent reviews on the Yelp platform. The system employs a two-branch architecture: a text branch utilizing PCA-derived text representations (16-dimensional) to approximate semantic content, while a lightweight feature engineering pipeline computes reviewer behavioral signals (padded to 16 dimensions). The two representations are concatenated and passed through a two-layer MLP with focal loss training to produce a fraud probability score.
+ReviewGuard is a hybrid fake review detection system that combines **text semantics** with **handcrafted reviewer behavioral signals** to identify fraudulent reviews on the Yelp platform. The system employs a two-branch architecture: a text branch utilizing **RoBERTa-base** [CLS] embeddings (projected via PCA to 16-dimensions) to capture deep semantic content, while a lightweight feature engineering pipeline computes reviewer behavioral signals (padded to 16 dimensions). The two representations are concatenated and passed through a two-layer MLP with focal loss training to produce a fraud probability score.
 
-Evaluated on the **YelpCHI** benchmark (45,954 reviews, 14.5% fake), ReviewGuard achieves a **Macro-F1 = 0.706** and **AUC-ROC = 0.867**, outperforming text-only and behavior-only ablations. The system successfully balances high discrimination (AUC) with operational effectiveness, achieving a minority-class Recall(Fake) of 0.756 compared to the highly conservative 0.343 recall of the Random Forest baseline. Cross-domain transfer to other datasets like YelpNYC is identified as an important future direction.
+Evaluated on the **YelpCHI** benchmark (45,954 reviews, 14.5% fake), ReviewGuard achieves a **Macro-F1 = 0.715** and **AUC-ROC = 0.866**, outperforming text-only and behavior-only ablations. The system successfully balances high discrimination (AUC) with operational effectiveness, achieving a minority-class Recall(Fake) of 0.727 — more than 15× the Behavior+Random Forest baseline (0.046). Cross-domain transfer to other datasets like YelpNYC is identified as an important future direction.
 
 ---
 
@@ -17,7 +17,7 @@ Evaluated on the **YelpCHI** benchmark (45,954 reviews, 14.5% fake), ReviewGuard
 
 ```
                      ┌────────────────────────────────────────┐
-   Review Text  ───► │  Text Semantics (PCA Approximation)    │
+   Review Text  ───► │  Text Semantics (RoBERTa-base + PCA)   │
                      │  16-dimensional latent representation  │
                      └────────────────────┬───────────────────┘
                                           │
@@ -60,7 +60,7 @@ Evaluated on the **YelpCHI** benchmark (45,954 reviews, 14.5% fake), ReviewGuard
 
 | Feature | Description |
 |---------|-------------|
-| **Dual-branch fusion** | PCA text semantics + 16 reviewer behavioral signals |
+| **Dual-branch fusion** | RoBERTa text semantics + 16 reviewer behavioral signals |
 | **Focal loss** | γ=2, class-weighted α to address 14.5% class imbalance |
 | **Stratified CV** | Proper train-test splits preventing data leakage |
 | **SHAP explainability** | Post-hoc auditing of individual feature predictions |
@@ -76,22 +76,31 @@ Evaluated on the **YelpCHI** benchmark (45,954 reviews, 14.5% fake), ReviewGuard
 The following table summarizes the in-domain performance on the YelpCHI dataset (45,954 reviews, 14.5% fake).
 
 | Model | AUC-ROC | Macro-F1 | F1 (Fake) | Recall (Fake) |
-|-------|---------|----------|---------------|---------|
-| TF-IDF + SVM | 0.837 | 0.713 | 0.452 | 0.625 |
-| TF-IDF + LogReg | 0.771 | 0.608 | 0.290 | 0.681 |
-| Behavior + Random Forest | **0.926** | 0.720 | **0.895** | 0.343 |
+|-------|---------|----------|-----------|---------------|
+| TF-IDF + SVM | 0.730 | 0.458 | 0.006 | 0.003 |
+| TF-IDF + LogReg | 0.750 | 0.638 | 0.434 | 0.567 |
+| Behavior + Random Forest | 0.672 | 0.488 | 0.077 | 0.046 |
 | Text-only MLP | 0.777 | 0.616 | 0.299 | 0.656 |
-| Behavior-only MLP | 0.803 | 0.623 | 0.306 | 0.753 |
-| **ReviewGuard (Fusion)** | 0.867 | **0.706** | 0.411 | **0.756** |
+| Behavior-only MLP | 0.783 | 0.571 | 0.306 | 0.753 |
+| **ReviewGuard (Fusion)** | **0.866** | **0.715** | **0.449** | **0.727** |
 
-*Note: While Random Forest achieves the highest AUC-ROC, it applies an overly conservative decision threshold resulting in a dangerously low Recall(Fake) of 0.343. ReviewGuard balances discrimination and recall efficiently.*
+*ReviewGuard achieves the highest Macro-F1 and Recall(Fake), flagging 72.7% of fake reviews compared to 4.6% for the Random Forest baseline — a 15× improvement — while attaining the best overall AUC-ROC.*
+
+### Confusion Matrix Analysis
+
+#### ReviewGuard Fusion Model
+![ReviewGuard Confusion Matrix](paper/figures/cm_reviewguard_fusion.png)
+
+#### Baseline Models Comparison
+![Baseline Confusion Matrices](paper/figures/baseline_confusion_matrices.png)
+
 
 ### Hypothesis Verification
 
 | Hypothesis | Status | Evidence |
 |------------|--------|---------|
-| H1: Behavior complements text | ✓ **Verified** | Macro-F1 +0.090 over Text-only MLP |
-| H2: Text complements behavior | ✓ **Verified** | AUC-ROC +0.064 over Behavior-only MLP |
+| H1: Behavior complements text | ✓ **Verified** | Macro-F1 +0.099 over Text-only MLP (0.715 vs 0.616) |
+| H2: Text complements behavior | ✓ **Verified** | AUC-ROC +0.083 over Behavior-only MLP (0.866 vs 0.783) |
 
 ---
 

@@ -125,7 +125,7 @@ SHAP (SHapley Additive exPlanations) analysis using `KernelExplainer` on the tra
 ├── src/
 │   ├── __init__.py
 │   ├── utils.py                     # Seed, device, logging, config loading
-│   ├── data_loader.py               # YelpCHI downloading and fallback logic
+│   ├── data_loader.py               # YelpCHI dataset loading and processing
 │   ├── data_utils.py                # PyTorch Datasets, collate functions
 │   ├── behavior_features.py         # Behavior feature computations (padded to 16)
 │   ├── baselines.py                 # SVM, LogReg, and standard RF baseline
@@ -166,9 +166,9 @@ cd Combining-Transformer-Semantics-and-Reviewer-Behavior-for-Fake-Review-Detecti
 pip install -r requirements.txt
 ```
 
-### 3. Generate the YelpCHI Dataset
+### 3. Preprocess Dataset
 
-The data pipeline automatically processes the YelpCHI data, downloading from the Rayana & Akoglu benchmark or utilizing the synthetic statistically-matched fallback.
+Prepare the YelpCHI data for the training pipeline:
 
 ```bash
 python -m src.data_loader --dataset yelpchi
@@ -193,6 +193,10 @@ python -m src.baselines --dataset yelpchi
 ### Step 3: Run the Text Branch & Extract PCA Features
 
 ```bash
+# Fine-tune RoBERTa:
+python -m src.text_branch --mode train --dataset yelpchi
+
+# Extract PCA embeddings:
 python -m src.text_branch --mode extract --dataset yelpchi
 ```
 
@@ -205,7 +209,7 @@ python -m src.fusion_model --dataset yelpchi
 ### Step 5: Run All Models (Orchestrated)
 
 ```bash
-# Train all conditions in sequence to reproduce paper results:
+# Train all conditions in sequence:
 python -m src.train_all --dataset yelpchi
 ```
 

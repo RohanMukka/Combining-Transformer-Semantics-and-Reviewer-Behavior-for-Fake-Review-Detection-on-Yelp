@@ -20,8 +20,10 @@ Two columns of the raw file are deliberately NOT used:
                each column from the review table) and correlates ~0.00 with the
                label. It is noise. See `audit_supplied_behavior_file()`.
 
-Reviewer and product aggregates are computed leave-one-out, so a review never
-contributes to the statistics used to classify it.
+This module produces the audited review table only. Behavioural features are
+built per cross-validation fold by `src/behavior_featurizer.py`, because
+reviewer and business aggregates computed over the whole corpus leak the label
+across the split (see `BehaviorFeaturizer` and `audit_product_leakage`).
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -42,28 +44,6 @@ OUT_DIR = REPO / "data" / "processed"
 
 # Columns of the raw file that survive the integrity audit.
 TRUSTED_COLUMNS = ["review_id", "user_id", "product_id", "rating", "text", "label"]
-
-BEHAVIOR_FEATURES = [
-    "rating",
-    "rating_extremity",
-    "rating_dev_from_product",
-    "rating_dev_signed",
-    "rev_review_count",
-    "rev_is_singleton",
-    "rev_mean_rating_loo",
-    "rev_std_rating",
-    "rev_extreme_ratio_loo",
-    "rev_positive_ratio_loo",
-    "rev_mean_dev_loo",
-    "rev_n_products",
-    "rev_max_reviews_one_product",
-    "rev_mean_review_len",
-    "prod_review_count",
-    "prod_mean_rating_loo",
-    "prod_std_rating",
-    "review_word_count",
-]
-
 
 # ─── Integrity audits ─────────────────────────────────────────────────────────
 
@@ -133,77 +113,6 @@ def audit_supplied_behavior_file(df: pd.DataFrame) -> Dict[str, float]:
     return out
 
 
-# ─── Feature construction ─────────────────────────────────────────────────────
-
-def _loo_mean(values: pd.Series, group: pd.Series, fallback: float) -> pd.Series:
-    """Leave-one-out group mean: (sum - x) / (n - 1), fallback when n == 1."""
-    g = values.groupby(group)
-    s, n = g.transform("sum"), g.transform("size")
-    out = (s - values) / (n - 1)
-    return out.where(n > 1, fallback)
-
-
-def _loo_ratio(mask: pd.Series, group: pd.Series, fallback: float) -> pd.Series:
-    """Leave-one-out group mean of a boolean indicator."""
-    return _loo_mean(mask.astype(float), group, fallback)
-
-
-def build_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute reviewer / product behavioral features. No timestamps used."""
-    f = pd.DataFrame(index=df.index)
-
-    rating = df["rating"].astype(float)
-    user, prod = df["user_id"], df["product_id"]
-    global_mean = float(rating.mean())
-
-    word_count = df["text"].astype(str).str.split().str.len().astype(float)
-
-    # Product context, leave-one-out so the review never sets its own baseline.
-    prod_mean_loo = _loo_mean(rating, prod, global_mean)
-    dev_signed = rating - prod_mean_loo
-
-    f["rating"] = rating
-    f["rating_extremity"] = (rating - 3.0).abs()
-    f["rating_dev_from_product"] = dev_signed.abs()
-    f["rating_dev_signed"] = dev_signed
-
-    # Reviewer activity.
-    rev_count = user.map(user.value_counts()).astype(float)
-    f["rev_review_count"] = rev_count
-    f["rev_is_singleton"] = (rev_count == 1).astype(float)
-    f["rev_mean_rating_loo"] = _loo_mean(rating, user, global_mean)
-    f["rev_std_rating"] = rating.groupby(user).transform("std").fillna(0.0)
-    f["rev_extreme_ratio_loo"] = _loo_ratio(
-        rating.isin([1.0, 5.0]), user, float(rating.isin([1.0, 5.0]).mean())
-    )
-    f["rev_positive_ratio_loo"] = _loo_ratio(
-        rating >= 4.0, user, float((rating >= 4.0).mean())
-    )
-    f["rev_mean_dev_loo"] = _loo_mean(
-        dev_signed.abs(), user, float(dev_signed.abs().mean())
-    )
-    f["rev_n_products"] = user.map(
-        df.groupby("user_id")["product_id"].nunique()
-    ).astype(float)
-    f["rev_max_reviews_one_product"] = user.map(
-        df.groupby(["user_id", "product_id"]).size().groupby("user_id").max()
-    ).astype(float)
-    f["rev_mean_review_len"] = _loo_mean(word_count, user, float(word_count.mean()))
-
-    # Product popularity.
-    f["prod_review_count"] = prod.map(prod.value_counts()).astype(float)
-    f["prod_mean_rating_loo"] = prod_mean_loo
-    f["prod_std_rating"] = rating.groupby(prod).transform("std").fillna(0.0)
-
-    f["review_word_count"] = word_count
-
-    assert list(f.columns) == BEHAVIOR_FEATURES, (
-        f"column drift: {set(f.columns) ^ set(BEHAVIOR_FEATURES)}"
-    )
-    assert f.notna().all().all(), "NaNs in behavior features"
-    return f
-
-
 def load_raw() -> pd.DataFrame:
     df = pd.read_csv(RAW_CSV)
     df["text"] = df["text"].astype(str)
@@ -228,16 +137,17 @@ def main() -> None:
     logger.info("  AUC from timestamp alone: %.4f",
                 audit["timestamps"]["auc_from_timestamp_alone"])
 
-    feats = build_features(df)
-    # `rating` lives in the feature block; keep identity columns only here.
-    identity = [c for c in TRUSTED_COLUMNS if c not in feats.columns]
-    out = pd.concat([df[identity], feats], axis=1)
+    from .behavior_featurizer import audit_product_leakage
+
+    audit["business_identity"] = audit_product_leakage(df)
+    audit_path.write_text(json.dumps(audit, indent=2))
+    logger.info("  AUC from per-business fake rate: %.4f",
+                audit["business_identity"]["auc_of_product_fake_rate_as_predictor"])
+
+    out = df[TRUSTED_COLUMNS]
     dest = OUT_DIR / "yelpchi_real.parquet"
     out.to_parquet(dest, index=False)
     logger.info("Wrote %s  shape=%s", dest, out.shape)
-
-    corr = feats.corrwith(df["label"]).sort_values(key=np.abs, ascending=False)
-    logger.info("\nBehavior feature correlation with label:\n%s", corr.round(4))
 
 
 if __name__ == "__main__":

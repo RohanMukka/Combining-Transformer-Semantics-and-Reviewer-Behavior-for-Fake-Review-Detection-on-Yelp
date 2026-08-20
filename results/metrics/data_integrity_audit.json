@@ -1,0 +1,23 @@
+{
+  "timestamps": {
+    "auc_from_timestamp_alone": 0.9648621822009658,
+    "monthly_fake_rate_min": 0.02563320109856576,
+    "monthly_fake_rate_max": 0.49754940711462453,
+    "distinct_seconds_values": 1,
+    "hour_of_day_chi2_uniform_ratio": 1.1123532699832308,
+    "span_days": 111,
+    "verdict": "contaminated - excluded from all features"
+  },
+  "supplied_behavior_file": {
+    "corr_avg_star_rating_vs_natural": 0.002410449396087139,
+    "corr_review_count_vs_natural": 0.0037138411220820093,
+    "corr_rating_deviation_vs_natural": 0.004593532115556352,
+    "corr_avg_star_rating_vs_label": 0.00303882049457434,
+    "corr_review_count_vs_label": -0.0036823584509045244,
+    "corr_burst_ratio_vs_label": -0.0016032330301722134,
+    "corr_rating_deviation_vs_label": -0.002452673794780453,
+    "corr_category_diversity_vs_label": -0.008128363271381911,
+    "corr_account_age_at_review_vs_label": -0.004209846647220338,
+    "verdict": "uninformative - not used"
+  }
+}

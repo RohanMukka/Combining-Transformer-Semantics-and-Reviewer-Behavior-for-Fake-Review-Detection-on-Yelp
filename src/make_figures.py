@@ -198,6 +198,31 @@ def fig_roc(scores: Dict) -> None:
     _save(fig, "roc_all_models")
 
 
+def fig_shap_behavior() -> None:
+    """Mean |SHAP| per behaviour feature, from the behaviour-branch MLP."""
+    path = METRICS / "shap_behavior.npz"
+    if not path.exists():
+        logger.warning("  %s absent - skipping SHAP figure", path)
+        return
+    z = np.load(path, allow_pickle=True)
+    vals = np.asarray(z["values"], dtype=float)
+    if vals.ndim == 3:          # (classes, samples, features) or (samples, features, classes)
+        vals = vals[0] if vals.shape[0] <= 2 else vals[..., 0]
+    names = [str(n) for n in z["names"]]
+    imp = np.abs(vals).mean(axis=0)
+    order = np.argsort(imp)
+
+    fig, ax = plt.subplots(figsize=(5.4, 4.4))
+    colors = [C_ALT if names[i].startswith("prod_") else C_MAIN for i in order]
+    ax.barh(np.arange(len(order)), imp[order], color=colors, alpha=0.9)
+    ax.set_yticks(np.arange(len(order)))
+    ax.set_yticklabels([names[i].replace("_", r"\_") if False else names[i] for i in order],
+                       fontsize=7.5)
+    ax.set_xlabel("Mean |SHAP value|")
+    ax.set_title("Behaviour-branch attribution (business-level features in red)")
+    _save(fig, "shap_behavior_summary")
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     logger.info("Generating figures...")
@@ -222,6 +247,8 @@ def main() -> None:
         fig_roc(scores)
     else:
         logger.warning("  %s absent - skipping ROC/confusion figures", score_path)
+
+    fig_shap_behavior()
 
     logger.info("Done.")
 

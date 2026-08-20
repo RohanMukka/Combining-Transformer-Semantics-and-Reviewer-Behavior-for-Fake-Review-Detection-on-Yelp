@@ -2,12 +2,10 @@
 
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{booktabs}
-\usepackage{multirow}
 \usepackage{hyperref}
 \usepackage{balance}
 
@@ -526,6 +524,36 @@ under 14.5\% prevalence buys fake-class recall at a substantial cost in false
 positives. For deployment this trade-off should be set from the relative cost of
 suppressing a genuine review versus missing a fake one, not from Macro-F1.
 
+\subsection{What the Behavior Branch Actually Uses}
+
+The protocol gap in Table~\ref{tab:protocol} shows that behavioral models rely
+on business identity; SHAP~\cite{lundberg2017unified} attribution shows the
+mechanism directly. Applying a kernel explainer to the behavior-only MLP over a
+sample of held-out reviews, one feature dominates: \texttt{prod\_review\_count},
+the number of reviews the business has received, carries a mean absolute SHAP
+value of 0.462, five times that of the next feature
+(\texttt{review\_word\_count}, 0.093). The four features describing the business
+itself (\texttt{prod\_*}) account for 55.5\% of total attribution while making up
+4 of the 19 inputs.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{figures/shap_behavior_summary.png}
+\caption{Mean absolute SHAP value per behavioral feature for the behavior-only
+MLP. Business-level features are shown in red. The single most influential
+feature is how many reviews a business has received, which carries no
+information about the review being classified.}
+\label{fig:shap}
+\end{figure}
+
+This is worth stating plainly: the most influential input to the behavior branch
+is a property of the business, not of the review or its author. Under the
+reviewer-disjoint protocol that feature is highly predictive, because a business
+seen in training carries its fake rate with it. Under the business-disjoint
+protocol it is a bare popularity count for a business the model has never seen,
+and its predictive value largely evaporates. The feature the model leans on
+hardest is precisely the one that does not transfer.
+
 % ============================================================
 % VII. DISCUSSION
 % ============================================================
@@ -673,6 +701,9 @@ D.~P.~Kingma and J.~Ba, ``Adam: A method for stochastic optimization,'' in \text
 
 \bibitem{cortes1995support}
 C.~Cortes and V.~Vapnik, ``Support-vector networks,'' \textit{Machine Learning}, vol.~20, no.~3, pp.~273--297, 1995.
+
+\bibitem{lundberg2017unified}
+S.~M.~Lundberg and S.-I.~Lee, ``A unified approach to interpreting model predictions,'' in \textit{Proc. NeurIPS}, Long Beach, CA, 2017, pp.~4765--4774.
 
 \bibitem{breiman2001random}
 L.~Breiman, ``Random forests,'' \textit{Machine Learning}, vol.~45, no.~1, pp.~5--32, 2001.

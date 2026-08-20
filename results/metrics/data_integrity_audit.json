@@ -19,5 +19,13 @@
     "corr_category_diversity_vs_label": -0.008128363271381911,
     "corr_account_age_at_review_vs_label": -0.004209846647220338,
     "verdict": "uninformative - not used"
+  },
+  "business_identity": {
+    "n_products": 1224,
+    "products_with_zero_fakes": 657,
+    "products_all_fake": 58,
+    "median_product_fake_rate": 0.0,
+    "auc_of_product_fake_rate_as_predictor": 0.9514675643032597,
+    "note": "Business identity is close to a sufficient statistic for the label. Splits that let a business appear in both train and test overstate generalisation; the primary protocol groups folds by product_id."
   }
 }

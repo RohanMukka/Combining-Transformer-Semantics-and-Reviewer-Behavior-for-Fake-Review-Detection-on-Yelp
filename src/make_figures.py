@@ -1,0 +1,230 @@
+"""Regenerate every figure in paper/figures/ from the recorded metrics."""
+
+from __future__ import annotations
+
+import json
+import logging
+from pathlib import Path
+from typing import Dict, List
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+REPO = Path(__file__).resolve().parent.parent
+METRICS = REPO / "results" / "metrics"
+FIG_RESULTS = REPO / "results" / "figures"
+FIG_PAPER = REPO / "paper" / "figures"
+
+MODEL_ORDER = [
+    "TF-IDF + LinearSVM",
+    "TF-IDF + LogReg",
+    "Behavior + LogReg",
+    "Behavior + RandomForest",
+    "Text-only MLP",
+    "Behavior-only MLP",
+    "ReviewGuard (Fusion)",
+]
+HIGHLIGHT = "ReviewGuard (Fusion)"
+C_MAIN, C_ALT, C_HL = "#4C72B0", "#C44E52", "#DD8452"
+
+plt.rcParams.update({
+    "figure.dpi": 150, "savefig.dpi": 200, "font.size": 9,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "axes.grid": True, "grid.alpha": 0.25, "grid.linestyle": "-",
+})
+
+
+def _load(name: str) -> Dict:
+    path = METRICS / name
+    if not path.exists():
+        raise FileNotFoundError(f"missing {path}; run src.run_real_experiments first")
+    return json.loads(path.read_text())
+
+
+def _save(fig, stem: str) -> None:
+    for d in (FIG_RESULTS, FIG_PAPER):
+        d.mkdir(parents=True, exist_ok=True)
+        fig.savefig(d / f"{stem}.png", bbox_inches="tight")
+    plt.close(fig)
+    logger.info("  wrote %s.png", stem)
+
+
+def fig_protocol_comparison(prod: Dict, user: Dict) -> None:
+    """The headline figure: same models, two split protocols."""
+    models = [m for m in MODEL_ORDER if m in prod["summary"]]
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.6))
+    metrics = [("auc_roc", "AUC-ROC"), ("macro_f1", "Macro-F1"), ("recall_fake", "Recall (Fake)")]
+    ypos = np.arange(len(models))
+
+    for ax, (key, title) in zip(axes, metrics):
+        pv = [prod["summary"][m][key]["mean"] for m in models]
+        pe = [prod["summary"][m][key]["std"] for m in models]
+        uv = [user["summary"][m][key]["mean"] for m in models]
+        ue = [user["summary"][m][key]["std"] for m in models]
+        ax.barh(ypos + 0.2, uv, 0.38, xerr=ue, color=C_ALT, alpha=0.85,
+                label="Reviewer-disjoint", error_kw={"lw": 0.8})
+        ax.barh(ypos - 0.2, pv, 0.38, xerr=pe, color=C_MAIN, alpha=0.9,
+                label="Business-disjoint", error_kw={"lw": 0.8})
+        ax.set_yticks(ypos)
+        ax.set_yticklabels(models if ax is axes[0] else [])
+        ax.set_title(title)
+        ax.set_xlim(0, 1.0)
+        ax.axvline(0.5, color="grey", lw=0.8, ls=":")
+    axes[0].legend(loc="lower right", fontsize=7.5, framealpha=0.95)
+    fig.suptitle(
+        "Business-disjoint evaluation removes most of the apparent performance",
+        y=1.02, fontsize=10.5,
+    )
+    _save(fig, "protocol_comparison")
+
+
+def fig_model_comparison(prod: Dict) -> None:
+    models = [m for m in MODEL_ORDER if m in prod["summary"]]
+    metrics = [("auc_roc", "AUC-ROC"), ("average_precision", "Avg. Precision"),
+               ("macro_f1", "Macro-F1"), ("recall_fake", "Recall (Fake)")]
+    fig, axes = plt.subplots(1, 4, figsize=(12, 3.4))
+    x = np.arange(len(models))
+    for ax, (key, title) in zip(axes, metrics):
+        vals = [prod["summary"][m][key]["mean"] for m in models]
+        errs = [prod["summary"][m][key]["std"] for m in models]
+        colors = [C_HL if m == HIGHLIGHT else C_MAIN for m in models]
+        ax.bar(x, vals, yerr=errs, color=colors, alpha=0.9, error_kw={"lw": 0.9})
+        ax.set_xticks(x)
+        ax.set_xticklabels(models, rotation=55, ha="right", fontsize=7)
+        ax.set_title(title)
+        ax.set_ylim(0, max(0.8, max(vals) * 1.25))
+        for xi, v in zip(x, vals):
+            ax.text(xi, v, f"{v:.3f}", ha="center", va="bottom", fontsize=6.5)
+    fig.suptitle("Five-fold performance, business-disjoint protocol (mean ± s.d.)",
+                 y=1.04, fontsize=10.5)
+    _save(fig, "final_model_comparison")
+
+
+def fig_fold_stability(prod: Dict) -> None:
+    models = [m for m in MODEL_ORDER if m in prod["summary"]]
+    fig, ax = plt.subplots(figsize=(7, 3.4))
+    for i, m in enumerate(models):
+        folds = prod["summary"][m]["auc_roc"]["folds"]
+        color = C_HL if m == HIGHLIGHT else C_MAIN
+        ax.scatter([i] * len(folds), folds, color=color, alpha=0.75, s=26, zorder=3)
+        ax.plot([i - 0.22, i + 0.22], [np.mean(folds)] * 2, color="black", lw=1.4, zorder=4)
+    ax.set_xticks(range(len(models)))
+    ax.set_xticklabels(models, rotation=55, ha="right", fontsize=7.5)
+    ax.set_ylabel("AUC-ROC")
+    ax.set_title("Per-fold AUC-ROC (bar = mean), business-disjoint protocol")
+    _save(fig, "fold_stability")
+
+
+def fig_business_leakage(df: pd.DataFrame) -> None:
+    per = df.groupby("product_id")["label"].agg(["mean", "size"])
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.3))
+    axes[0].hist(per["mean"], bins=30, color=C_MAIN, alpha=0.9)
+    axes[0].set_xlabel("Fake-review rate of a business")
+    axes[0].set_ylabel("Number of businesses")
+    axes[0].set_title(
+        f"{int((per['mean'] == 0).sum())} of {len(per)} businesses have no fake reviews"
+    )
+    order = per.sort_values("mean")
+    axes[1].plot(np.arange(len(order)), order["mean"].values, color=C_ALT, lw=1.6)
+    axes[1].fill_between(np.arange(len(order)), order["mean"].values, color=C_ALT, alpha=0.25)
+    axes[1].set_xlabel("Businesses, sorted by fake-review rate")
+    axes[1].set_ylabel("Fake-review rate")
+    axes[1].set_title("Label is near-constant within a business")
+    _save(fig, "business_label_concentration")
+
+
+def fig_timestamp_contamination(df: pd.DataFrame, audit: Dict) -> None:
+    d = pd.to_datetime(df["date"])
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.3))
+    monthly = df.assign(_m=d.dt.to_period("M").astype(str)).groupby("_m")["label"].mean()
+    axes[0].bar(monthly.index, monthly.values, color=C_ALT, alpha=0.9)
+    axes[0].set_ylabel("Fake-review rate")
+    axes[0].set_title("Fake rate by month of the released timestamp")
+    axes[0].tick_params(axis="x", rotation=30)
+    hours = d.dt.hour.value_counts().sort_index()
+    axes[1].bar(hours.index, hours.values, color=C_MAIN, alpha=0.9)
+    axes[1].set_xlabel("Hour of day")
+    axes[1].set_ylabel("Reviews")
+    axes[1].set_title("Posting hour is uniform (times are synthetic)")
+    fig.suptitle(
+        "Released timestamps are contaminated: AUC "
+        f"{audit['timestamps']['auc_from_timestamp_alone']:.3f} from the timestamp alone",
+        y=1.03, fontsize=10,
+    )
+    _save(fig, "timestamp_contamination")
+
+
+def fig_confusion(scores: Dict) -> None:
+    from sklearn.metrics import confusion_matrix
+    y = scores["y_true"]
+    fig, ax = plt.subplots(figsize=(3.6, 3.2))
+    cm = confusion_matrix(y, (scores["fusion"] >= scores["threshold"]).astype(int))
+    ax.imshow(cm, cmap="Blues")
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, f"{cm[i, j]:,}", ha="center", va="center",
+                    color="white" if cm[i, j] > cm.max() / 2 else "black", fontsize=11)
+    ax.set_xticks([0, 1]); ax.set_xticklabels(["Genuine", "Fake"])
+    ax.set_yticks([0, 1]); ax.set_yticklabels(["Genuine", "Fake"])
+    ax.set_xlabel("Predicted"); ax.set_ylabel("Actual")
+    ax.set_title("ReviewGuard, business-disjoint fold")
+    ax.grid(False)
+    _save(fig, "cm_reviewguard_fusion")
+
+
+def fig_roc(scores: Dict) -> None:
+    from sklearn.metrics import roc_auc_score, roc_curve
+    y = scores["y_true"]
+    fig, ax = plt.subplots(figsize=(4.4, 3.8))
+    for name, key, color in [
+        ("ReviewGuard (Fusion)", "fusion", C_HL),
+        ("Behavior-only MLP", "behavior", C_MAIN),
+        ("Text-only MLP", "text", C_ALT),
+    ]:
+        if key not in scores:
+            continue
+        fpr, tpr, _ = roc_curve(y, scores[key])
+        ax.plot(fpr, tpr, color=color, lw=1.7,
+                label=f"{name} (AUC {roc_auc_score(y, scores[key]):.3f})")
+    ax.plot([0, 1], [0, 1], color="grey", ls=":", lw=1)
+    ax.set_xlabel("False positive rate"); ax.set_ylabel("True positive rate")
+    ax.set_title("ROC, business-disjoint fold")
+    ax.legend(loc="lower right", fontsize=7.5)
+    _save(fig, "roc_all_models")
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logger.info("Generating figures...")
+
+    prod = _load("real_yelpchi_results_by_product.json")
+    user = _load("real_yelpchi_results_by_user.json")
+    audit = _load("data_integrity_audit.json")
+    raw = pd.read_csv(REPO / "data" / "raw" / "yelpchi.csv")
+
+    fig_protocol_comparison(prod, user)
+    fig_model_comparison(prod)
+    fig_fold_stability(prod)
+    fig_business_leakage(raw)
+    fig_timestamp_contamination(raw, audit)
+
+    score_path = METRICS / "fold_scores.npz"
+    if score_path.exists():
+        z = np.load(score_path)
+        scores = {k: z[k] for k in z.files}
+        scores["threshold"] = float(scores["threshold"])
+        fig_confusion(scores)
+        fig_roc(scores)
+    else:
+        logger.warning("  %s absent - skipping ROC/confusion figures", score_path)
+
+    logger.info("Done.")
+
+
+if __name__ == "__main__":
+    main()

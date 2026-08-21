@@ -704,17 +704,31 @@ hardest is precisely the one that does not transfer.
 \subsection{Implications for Benchmarking}
 
 We do not claim that prior YelpCHI results are wrong. We claim that the standard
-protocol does not separate two capabilities that behave very differently in
-deployment: recognizing deception, and recognizing businesses with a history of
-being targeted. Both are useful to a platform, and a platform monitoring a fixed
-set of businesses may legitimately exploit the second. But a detector evaluated
-only under a business-overlapping split has not been shown to do the first, and
-its reported number will not survive contact with a new market. Reporting both
-splits costs one extra run and makes the distinction visible.
+protocol does not separate three capabilities that behave very differently in
+deployment: recognizing deception, recognizing that a \textit{particular}
+business has been targeted before, and recognizing the kind of business that
+attracts targeting. The first and third transfer to a new market; the second
+does not. A detector evaluated only under a business-overlapping split has not
+been shown to do the first or third, and its reported number will not survive
+contact with a new market.
+
+The obvious correction --- group folds by business --- is right but incomplete,
+and the way it is incomplete is the more useful half of our result. Grouping
+alone leaves two loose ends. If features are computed strictly from training
+rows, the split removes the third capability along with the second, and the
+resulting number understates the method rather than correcting it. And if the
+model consumes a graph, grouping does not remove the second capability at all,
+because the topology reconstructs a business profile from same-business
+neighbours whatever the feature matrix contains. Reporting a business-disjoint
+number is therefore not on its own evidence of anything; what a model's features
+and edges are permitted to see has to be stated alongside it. Concretely, we
+suggest reporting the split, the source of aggregate statistics, and --- for
+graph models --- a degree control, which costs one extra run.
 
 The point generalizes past this dataset. Any fraud benchmark assembled by
 sampling entities and collecting their records will concentrate labels by
-entity, and any model given entity-level aggregates can exploit it.
+entity. Any model given entity-level aggregates can exploit that, and any model
+given entity-level \textit{edges} can reconstruct the aggregates.
 
 \subsection{Limitations}
 
@@ -769,18 +783,32 @@ features. We additionally document label-contaminated timestamps and an
 uninformative behavioral feature file in a widely circulated distribution of the
 dataset.
 
-Under business-disjoint evaluation ReviewGuard reaches 0.730 AUC-ROC, ahead of
-both of its ablations, though by a margin that five folds cannot establish as
-significant. We think those numbers, and not the higher ones obtainable under a
-weaker protocol, are the ones worth reporting.
+But the correction that grouping folds by business is enough does not hold, and
+saying why is the more useful result. Business-level quantities are not one
+thing. Statistics derived from labels are leakage; the identity of a known
+target does not transfer; and a label-free profile of a business's own reviews
+transfers to businesses never seen, at 0.805 AUC. A strict training-only
+featurization removes all three together, which is why our own first pass made
+behavioral features look far weaker than they are. A transductive graph model
+sits at the opposite extreme: its edges reconstruct the profile whatever its
+features are permitted to hold, so a business-disjoint split does not constrain
+it the way it constrains a feature-based model. A relation-aware GNN here is
+matched by a plain MLP given two graph degrees, which locates its advantage in
+bookkeeping rather than in relational learning.
+
+Under business-disjoint evaluation ReviewGuard reaches 0.730 AUC-ROC in the
+inductive regime, ahead of both of its ablations, though by a margin that five
+folds cannot establish as significant.
 
 Three directions follow. First, completing the transformer text branch, which
 our infrastructure prevented and which is the most likely source of improvement.
-Second, re-examining published YelpCHI and YelpNYC results under
-business-disjoint splits, particularly for graph-based methods, which have the
-most direct access to business identity. Third, obtaining a clean temporal
-record so that burstiness features can be evaluated for whether they transfer
-across businesses as poorly as static aggregates do.
+Second, re-examining published YelpCHI and YelpNYC results along both axes ---
+graph-based methods especially, since the degree control suggests their reported
+margins may rest on structure a split cannot remove. Third, obtaining a clean
+temporal record, so that burstiness can be tested for which of the three
+categories it belongs to; unlike the static aggregates studied here, it is
+plausibly a property of a campaign rather than of a business, and would then
+transfer where they do not.
 
 \section*{Acknowledgment}
 

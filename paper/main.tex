@@ -651,6 +651,16 @@ inductive regime is a constant worth 0.500.
 
 \input{tables/graph_comparison}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/degree_control.png}
+\caption{What the split does and does not reach. Behavioral features lose 0.183
+AUC when businesses stop spanning the split; the same features plus two graph
+degrees lose 0.095; a graph degree on its own loses 0.001. The split partitions
+rows, and a degree is not computed from rows it can partition.}
+\label{fig:degree}
+\end{figure}
+
 Table~\ref{tab:graph} reports the consequence, and its last row is the most
 direct statement of the problem in this paper. A node's R-S-R degree is worth
 0.709 AUC under the reviewer-disjoint split and 0.708 under the business-disjoint

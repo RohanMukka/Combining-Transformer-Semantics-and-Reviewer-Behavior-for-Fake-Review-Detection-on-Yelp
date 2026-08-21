@@ -201,6 +201,52 @@ def fig_roc(scores: Dict) -> None:
     _save(fig, "roc_all_models")
 
 
+def fig_regime(prod_ind: Dict, prod_tra: Dict) -> None:
+    """Business-disjoint split under both feature regimes."""
+    models = [m for m in MODEL_ORDER
+              if m in prod_ind["summary"] and m in prod_tra["summary"]]
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    ypos = np.arange(len(models))
+    iv = [prod_ind["summary"][m]["auc_roc"]["mean"] for m in models]
+    ie = [prod_ind["summary"][m]["auc_roc"]["std"] for m in models]
+    tv = [prod_tra["summary"][m]["auc_roc"]["mean"] for m in models]
+    te = [prod_tra["summary"][m]["auc_roc"]["std"] for m in models]
+    ax.barh(ypos + 0.2, tv, 0.38, xerr=te, color=C_MAIN, alpha=0.9,
+            label="Transductive (label-free)", error_kw={"lw": 0.8})
+    ax.barh(ypos - 0.2, iv, 0.38, xerr=ie, color=C_ALT, alpha=0.85,
+            label="Inductive (training rows only)", error_kw={"lw": 0.8})
+    ax.set_yticks(ypos)
+    ax.set_yticklabels(models, fontsize=8)
+    ax.set_xlabel("AUC-ROC")
+    ax.set_xlim(0, 1.0)
+    ax.axvline(0.5, color="grey", lw=0.8, ls=":")
+    ax.legend(loc="lower right", fontsize=7.5, framealpha=0.95)
+    ax.set_title("Business-disjoint split, both feature regimes", fontsize=10)
+    _save(fig, "regime_comparison")
+
+
+def fig_degree_control(deg_prod: Dict, deg_user: Dict) -> None:
+    """What a graph degree is worth under each split."""
+    keys = ["Behavior MLP", "Behavior MLP + graph degree", "R-S-R degree alone"]
+    labels = ["Behavior MLP", "+ graph degree", "R-S-R degree alone"]
+    fig, ax = plt.subplots(figsize=(6.0, 2.9))
+    ypos = np.arange(len(keys))
+    uv = [deg_user["summary"][k]["auc_roc"]["mean"] for k in keys]
+    pv = [deg_prod["summary"][k]["auc_roc"]["mean"] for k in keys]
+    ax.barh(ypos + 0.2, uv, 0.38, color=C_ALT, alpha=0.85, label="Reviewer-disjoint")
+    ax.barh(ypos - 0.2, pv, 0.38, color=C_MAIN, alpha=0.9, label="Business-disjoint")
+    for y, (u, q) in enumerate(zip(uv, pv)):
+        ax.text(max(u, q) + 0.012, y, f"gap {u - q:+.3f}", va="center", fontsize=7.5)
+    ax.set_yticks(ypos)
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.set_xlabel("AUC-ROC")
+    ax.set_xlim(0, 1.22)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=2,
+              fontsize=7.5, frameon=False)
+    ax.set_title("A degree is worth the same under either split", fontsize=10)
+    _save(fig, "degree_control")
+
+
 def fig_shap_behavior() -> None:
     """Mean |SHAP| per behavior feature, from the behavior-branch MLP."""
     path = METRICS / "shap_behavior.npz"
@@ -236,6 +282,18 @@ def main() -> None:
     raw = pd.read_csv(REPO / "data" / "raw" / "yelpchi.csv")
 
     fig_protocol_comparison(prod, user)
+
+    prod_tra_p = METRICS / "real_yelpchi_results_by_product_transductive.json"
+    if prod_tra_p.exists():
+        fig_regime(prod, json.loads(prod_tra_p.read_text()))
+    else:
+        logger.warning("  transductive results absent - skipping regime figure")
+
+    dp, du = METRICS / "degree_control_by_product.json", METRICS / "degree_control_by_user.json"
+    if dp.exists() and du.exists():
+        fig_degree_control(json.loads(dp.read_text()), json.loads(du.read_text()))
+    else:
+        logger.warning("  degree control absent - skipping degree figure")
     fig_model_comparison(prod)
     fig_fold_stability(prod)
     fig_business_leakage(raw)

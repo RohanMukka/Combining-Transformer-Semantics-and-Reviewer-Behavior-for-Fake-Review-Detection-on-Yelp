@@ -60,25 +60,28 @@ makes every business-level quantity suspect, and the usual response --- grouping
 cross-validation folds so that no business spans the split --- produces a large
 apparent collapse. A behavioral random forest falls from 0.934 to 0.646 AUC-ROC
 under that change, enough to invert the ranking of behavioral and textual
-features. We show that reading is only half right. Business-level quantities
-divide into three kinds that the conventional protocol conflates: statistics
-derived from labels, which are unambiguous leakage; the identity of a business
-known to have been targeted, which a business-disjoint split correctly removes;
-and label-free profiles of a business's own reviews, which a platform observes
-for a brand-new listing and which transfer to businesses never seen during
-training at 0.805 AUC. Removing the third along with the first two is not
-rigour but self-harm, and it is what a strict training-only featurization does.
-We therefore evaluate along two axes --- the split and the source of a feature's
-statistics --- and report both. Graph models make the distinction unavoidable:
-message passing reconstructs a business profile from a node's same-business
-neighbours regardless of what its feature matrix was allowed to contain, so a
-business-disjoint split is necessary but not sufficient for them. A relation-aware
-GNN is matched by a plain MLP given only two graph degrees, placing its advantage
-in structural bookkeeping rather than relational learning. We additionally
-document two integrity failures in a widely circulated distribution of the
-dataset: label-contaminated timestamps yielding 0.965 AUC from the timestamp
-alone, and a behavioral feature file uncorrelated with both the label and its
-own column definitions.
+features. We show that reading is mostly wrong. Business-level quantities divide
+into three kinds the conventional protocol conflates: statistics derived from
+labels, which are unambiguous leakage; the identity of a business known to have
+been targeted, which a business-disjoint split correctly removes; and label-free
+profiles of a business's own reviews, which a platform observes for a brand-new
+listing and which transfer to businesses never seen in training at 0.805 AUC. A
+strict training-only featurization removes all three, and that is what most of
+the collapse turns out to be. Restoring only the third --- using no labels and
+changing nothing else --- returns 0.252 of the random forest's 0.289, so roughly
+87\% of the apparent leakage was withheld information and about 13\% was genuine.
+We therefore evaluate along two axes, the split and the source of a feature's
+statistics, and report both; the axis is well behaved, moving behavioral models
+by up to $+0.252$ and text models by $+0.000$. Graph models make the distinction
+unavoidable, since message passing reconstructs a business profile from
+same-business neighbours whatever the feature matrix holds: a node's degree is
+worth 0.709 AUC under one split and 0.708 under the other, and a plain MLP given
+two such degrees recovers three quarters of a relation-aware GNN's advantage.
+A business-disjoint split is thus necessary but not sufficient for graph models.
+Our own detector yields a negative result --- its fusion benefit reverses under
+the second axis --- and we additionally document label-contaminated timestamps
+(0.965 AUC from the timestamp alone) and an uninformative behavioral feature
+file in a widely circulated distribution of the dataset.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -158,9 +161,10 @@ Our contributions are:
       the topology what the split withheld from the features
       (Section~\ref{sec:graph}).
 \item ReviewGuard, a two-branch detector fusing lexical text features with
-      reviewer and business behavioral features, trained with focal loss under
-      severe class imbalance, with per-model threshold tuning so that baselines
-      are not handicapped (Section~\ref{sec:method}).
+      reviewer and business behavioral features, with per-model threshold tuning
+      so that baselines are not handicapped --- and a negative result about it:
+      its fusion benefit does not survive the second axis
+      (Section~\ref{sec:method}).
 \item A data integrity audit of a widely circulated CSV distribution of
       YelpCHI, identifying label-contaminated timestamps and an uninformative
       behavioral feature file, both excluded from our experiments
@@ -586,11 +590,29 @@ We are deliberate about what this does and does not establish. With five paired
 folds the Wilcoxon signed-rank test bottoms out at $p = 0.0625$, so the
 five-of-five comparisons sit at the floor of what the test can report and
 nothing here clears $\alpha = 0.05$. The effect is also small relative to
-fold-to-fold spread, which Fig.~\ref{fig:stability} shows directly. We read the
-evidence as a real but modest fusion benefit that, unlike the behavioral
-advantage, survives the stricter protocol --- not as a decisive win. Whether a
-transformer text branch would widen the margin is exactly the experiment we were
-unable to run.
+fold-to-fold spread, which Fig.~\ref{fig:stability} shows directly.
+
+It also does not survive the second axis, and we report that plainly because it
+is the more informative outcome. Under the transductive regime the ordering
+reverses and does so unambiguously: the behavior-only MLP reaches 0.917 against
+ReviewGuard's 0.853, and beats it on \textit{five of five} folds. Fusion is not
+merely failing to help there; it is actively costing 0.064 AUC.
+
+The mechanism is visible in the two branches. Under the inductive regime the
+behavior branch is crippled to 0.706 while text sits at 0.712, so concatenating
+them combines two comparably weak signals and helps. Under the transductive
+regime behavior reaches 0.917 while text is unchanged at 0.712, and
+concatenation now dilutes a strong 19-dimensional signal across 266 largely
+uninformative text dimensions. Naive concatenation fusion is a reasonable choice
+when branches are comparable and a poor one when they are not, and which of
+those regimes one is in was, in our case, determined by a featurization decision
+rather than by anything about the data.
+
+The honest summary is therefore that we find no regime-independent fusion
+benefit. Whether a transformer text branch would change this --- by raising the
+text branch to where concatenation is again a fair fight --- is exactly the
+experiment we were unable to run, and it is now the most interesting thing we
+cannot answer.
 
 \begin{figure}[t]
 \centering
@@ -647,15 +669,36 @@ described by its own reviews, as a deployed system would observe it.
 
 \input{tables/regime_comparison}
 
-The difference is substantial, and it means the collapse in
-Table~\ref{tab:protocol} cannot be attributed to leakage alone. Part of it is
-leakage --- business identity really is unavailable for an unseen business ---
-and part is a self-inflicted wound from a featurisation strict enough to discard
-the transferable business profiles of Section~\ref{sec:integrity}. Separating
-the two is the point of the second axis, and it is the correction we consider
-the most useful contribution of this paper: a protocol that removes information
-along with leakage will make any behavioral method look worse than it is, and
-will do so invisibly.
+Two features of the result establish that the axis measures what it claims.
+First, the three text-based models move by $+0.000$ --- not approximately, but
+to three decimals. The regime governs only reviewer and business aggregates, and
+text models consume none, so a nonzero movement there would have indicated a bug
+rather than a finding. Second, every behavioral model moves by a great deal:
+$+0.211$ for the behavior-only MLP, $+0.216$ for behavioral logistic regression,
+$+0.252$ for the random forest. One axis moves one family and leaves the other
+exactly untouched.
+
+The magnitudes force a revision of Table~\ref{tab:protocol}. Take the random
+forest, whose collapse was the most dramatic: 0.289 AUC lost when businesses
+stopped spanning the split. Restoring label-free business profiles returns 0.252
+of that, leaving 0.037 --- so roughly \textit{87\%} of what looked like leakage
+was our featurization withholding observable information, and about 13\% was
+business identity genuinely unavailable for an unseen business. For the
+behavior-only MLP the transductive regime more than compensates: it recovers
+0.211 against a collapse of 0.183, finishing 0.028 \textit{above} the figure the
+leaky protocol produced. That is not paradoxical. Under the reviewer-disjoint
+split a business straddles the fold boundary and its profile is built from
+whichever of its reviews happened to land in training; under the
+business-disjoint split with transductive features the profile is complete. A
+strict split with honest features can beat a loose split with crippled ones.
+
+We consider this the paper's most useful correction, and we arrived at it by
+making the mistake first. A protocol that removes information along with leakage
+makes a method look worse than it is, publishes a number that understates it,
+and gives no signal that anything has gone wrong --- the experiment runs, the
+folds are clean, the result is simply too low. Grouping folds is not sufficient
+on its own; what a feature is permitted to be computed from has to be stated
+alongside the split.
 
 \subsection{Graph Models and the Limits of a Business-Disjoint Split}
 \label{sec:graph}
@@ -889,9 +932,13 @@ it the way it constrains a feature-based model. A relation-aware GNN here is
 matched by a plain MLP given two graph degrees, which locates its advantage in
 bookkeeping rather than in relational learning.
 
-Under business-disjoint evaluation ReviewGuard reaches 0.730 AUC-ROC in the
-inductive regime, ahead of both of its ablations, though by a margin that five
-folds cannot establish as significant.
+ReviewGuard itself we report as a negative result. It leads its ablations under
+the inductive regime, by a margin five folds cannot establish as significant,
+and loses to the behavior branch alone on five of five folds under the
+transductive one --- 0.853 against 0.917. Concatenation fusion helps when its
+branches are comparably strong and hurts when they are not, and which of those
+holds was decided here by a featurization choice rather than by the data. We
+find no regime-independent fusion benefit.
 
 Three directions follow. First, completing the transformer text branch, which
 our infrastructure prevented and which is the most likely source of improvement.

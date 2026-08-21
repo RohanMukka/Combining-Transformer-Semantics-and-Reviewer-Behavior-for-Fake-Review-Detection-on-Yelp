@@ -135,6 +135,34 @@ def build_claims() -> List[Tuple[str, float, Optional[float]]]:
         add("R-S-R neighbours in training, reviewer-disjoint", 0.801,
             gnn_u["neighborhood_audit"]["frac_rsr_neighbors_in_training"])
 
+    if prod_t:
+        add("behavior-only, bus-disj transductive", 0.917,
+            _auc(prod_t, "Behavior-only MLP"))
+        add("fusion, bus-disj transductive", 0.853,
+            _auc(prod_t, "ReviewGuard (Fusion)"))
+        add("RF, bus-disj transductive", 0.898,
+            _auc(prod_t, "Behavior + RandomForest"))
+
+    if prod_t and prod:
+        add("regime gain, behavior-only", 0.211,
+            _auc(prod_t, "Behavior-only MLP") - _auc(prod, "Behavior-only MLP"))
+        add("regime gain, RF", 0.252,
+            _auc(prod_t, "Behavior + RandomForest")
+            - _auc(prod, "Behavior + RandomForest"))
+        add("regime gain, behavior LogReg", 0.216,
+            _auc(prod_t, "Behavior + LogReg") - _auc(prod, "Behavior + LogReg"))
+        # The regime touches only reviewer/business aggregates, so a text model
+        # must move by exactly zero. A nonzero value here is a bug, not a result.
+        for m in ("Text-only MLP", "TF-IDF + LogReg", "TF-IDF + LinearSVM"):
+            add(f"regime gain, {m} (must be 0)", 0.000,
+                _auc(prod_t, m) - _auc(prod, m))
+        add("fusion loses to behavior-only, transductive", 0.064,
+            _auc(prod_t, "Behavior-only MLP") - _auc(prod_t, "ReviewGuard (Fusion)"))
+
+    if prod_t and user:
+        add("RF residual after regime correction", 0.037,
+            _auc(user, "Behavior + RandomForest") - _auc(prod_t, "Behavior + RandomForest"))
+
     return c
 
 

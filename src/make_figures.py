@@ -205,7 +205,11 @@ def fig_regime(prod_ind: Dict, prod_tra: Dict) -> None:
     """Business-disjoint split under both feature regimes."""
     models = [m for m in MODEL_ORDER
               if m in prod_ind["summary"] and m in prod_tra["summary"]]
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    # Sort by regime gain so the pattern is monotone: text models (exactly zero)
+    # at one end, behavioural models at the other.
+    models.sort(key=lambda m: prod_tra["summary"][m]["auc_roc"]["mean"]
+                            - prod_ind["summary"][m]["auc_roc"]["mean"])
+    fig, ax = plt.subplots(figsize=(6.6, 3.6))
     ypos = np.arange(len(models))
     iv = [prod_ind["summary"][m]["auc_roc"]["mean"] for m in models]
     ie = [prod_ind["summary"][m]["auc_roc"]["std"] for m in models]
@@ -218,9 +222,12 @@ def fig_regime(prod_ind: Dict, prod_tra: Dict) -> None:
     ax.set_yticks(ypos)
     ax.set_yticklabels(models, fontsize=8)
     ax.set_xlabel("AUC-ROC")
-    ax.set_xlim(0, 1.0)
+    for y, (a, b) in enumerate(zip(iv, tv)):
+        ax.text(max(a, b) + 0.012, y, f"{b - a:+.3f}", va="center", fontsize=7)
+    ax.set_xlim(0, 1.12)
     ax.axvline(0.5, color="grey", lw=0.8, ls=":")
-    ax.legend(loc="lower right", fontsize=7.5, framealpha=0.95)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.18), ncol=2,
+              fontsize=7.5, frameon=False)
     ax.set_title("Business-disjoint split, both feature regimes", fontsize=10)
     _save(fig, "regime_comparison")
 

@@ -669,6 +669,16 @@ described by its own reviews, as a deployed system would observe it.
 
 \input{tables/regime_comparison}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/regime_comparison.png}
+\caption{The business-disjoint split under both feature regimes, ordered by the
+gain. The three text-based models move by exactly zero --- they consume no
+business aggregates, so the regime cannot reach them --- while every behavioral
+model moves by more than 0.2. One axis, one family.}
+\label{fig:regime}
+\end{figure}
+
 Two features of the result establish that the axis measures what it claims.
 First, the three text-based models move by $+0.000$ --- not approximately, but
 to three decimals. The regime governs only reviewer and business aggregates, and

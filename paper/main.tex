@@ -780,7 +780,25 @@ given entity-level \textit{edges} can reconstruct the aggregates.
 
 \subsection{Limitations}
 
-Our study has four limitations we consider material.
+Our study has six limitations we consider material.
+
+The transductive regime is optimistic in a specific way. It describes a
+held-out business using \textit{all} of its reviews --- a median of ten here,
+and a mean of 38. A listing created yesterday has one or two, so its profile
+would be far noisier than anything we measure, and the 0.805 transfer figure
+should be
+read as an upper bound on what a business profile is worth at the moment a
+business is new. The honest operating point for a genuinely cold business lies
+somewhere between our two regimes, and locating it would require a temporal
+record we do not trust in this distribution.
+
+Our graph result rests on a re-implementation. The model in
+Section~\ref{sec:graph} follows the CARE-GNN family --- per-relation mean
+aggregation over R-U-R and R-S-R --- but is not CARE-GNN, and omits its
+learned neighbour filtering. We report what our own GNN does; whether published
+graph detectors behave the same way under a business-disjoint split is a
+question our degree control motivates rather than answers, and running it on
+released implementations is the single most valuable follow-up we can name.
 
 The text branch is lexical rather than transformer-based, for the
 infrastructural reason given in Section~\ref{sec:method}. Our absolute numbers on
@@ -798,6 +816,11 @@ whose smallest attainable two-sided $p$-value at $n = 5$ is 0.0625. Our
 conclusions rest on effect sizes and fold-level consistency, and the fusion
 comparison in particular is underpowered: a study wanting to settle it should
 run repeated cross-validation or more folds.
+
+All results are on a single corpus. YelpCHI has 1{,}224 businesses, so the
+business-disjoint folds hold roughly 244 businesses out each --- enough to
+measure a gap, but a single market and a single collection methodology.
+Whether the three-way separation holds on YelpNYC or YelpZIP is untested here.
 
 Finally, YelpCHI's labels originate in Yelp's proprietary filter. They encode
 one platform's operational definition of spam, with unknown false negative

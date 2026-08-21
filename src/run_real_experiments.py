@@ -10,11 +10,19 @@ Protocol
   split that lets a business appear on both sides measures memorisation of
   which businesses were spam targets. `--group-by user` reproduces that weaker
   protocol for the leakage comparison reported in the paper.
-* Every fitted object - TF-IDF vocabulary, SVD basis, feature scaler, and the
-  reviewer/business aggregate tables - is fit on the training portion of the
-  fold only. Held-out rows whose reviewer or business was never seen in
-  training fall back to training-set priors, flagged by the
-  `rev_seen_in_training` / `prod_seen_in_training` indicators.
+* Every fitted object - TF-IDF vocabulary, SVD basis, feature scaler - is fit
+  on the training portion of the fold only.
+* The reviewer/business aggregate tables have their own axis, `--features`:
+  - `inductive` builds them from the fold's training rows, so a business absent
+    from training collapses to a training-set prior (flagged by the
+    `rev_seen_in_training` / `prod_seen_in_training` indicators).
+  - `transductive` builds them from every review in the corpus with labels
+    untouched, so a held-out business is described by its own reviews.
+  Neither regime uses a label. The strict `inductive` reading is the more
+  conservative one, but it discards information a deployed detector genuinely
+  holds - a new business's own reviews are observable - and understates what
+  behavioural features can do. Reporting both separates leakage from
+  conservatism.
 * Each fold reserves a grouped validation slice of the training data. Decision
   thresholds for *every* model are tuned on that slice to maximise Macro-F1,
   then applied unchanged to the test fold. Comparing a tuned model against
@@ -23,6 +31,7 @@ Protocol
   signed-rank tests of ReviewGuard against each baseline.
 
 Usage:  python -m src.run_real_experiments [--folds 5] [--group-by product|user]
+                                          [--features inductive|transductive]
 """
 
 from __future__ import annotations
@@ -195,6 +204,7 @@ def run_fold(
     te_idx: np.ndarray,
     svd_components: int,
     group_col: str,
+    transductive: bool = False,
 ) -> FoldOutput:
     t0 = time.time()
     logger.info("─" * 70)
@@ -247,7 +257,9 @@ def run_fold(
     T_te = enc.transform(te_df["text"])
 
     # ---- Behaviour features (aggregates fit on this fold's training rows) ---
-    featurizer = BehaviorFeaturizer().fit(fit_df)
+    featurizer = BehaviorFeaturizer(transductive=transductive).fit(
+        fit_df, corpus=df if transductive else None
+    )
     B_fit_df = featurizer.transform(fit_df)
     B_val_df = featurizer.transform(val_df)
     B_te_df = featurizer.transform(te_df)
@@ -350,6 +362,9 @@ def main() -> None:
     ap.add_argument("--svd-components", type=int, default=256)
     ap.add_argument("--group-by", choices=["product", "user"], default="product",
                     help="what CV folds are disjoint on (see module docstring)")
+    ap.add_argument("--features", choices=["inductive", "transductive"],
+                    default="inductive",
+                    help="where reviewer/business aggregates come from")
     ap.add_argument("--quick", action="store_true", help="one fold, 64 SVD dims")
     args = ap.parse_args()
 
@@ -363,7 +378,8 @@ def main() -> None:
     group_col = "product_id" if args.group_by == "product" else "user_id"
     y, groups = df["label"].values, df[group_col].values
     logger.info("Loaded %d reviews, fake rate %.4f", len(df), y.mean())
-    logger.info("Grouping folds by %s (%d distinct)", group_col, df[group_col].nunique())
+    logger.info("Grouping folds by %s (%d distinct) | feature regime: %s",
+                group_col, df[group_col].nunique(), args.features)
     leak = audit_product_leakage(df)
     logger.info("Business-identity check: %d/%d businesses have zero fakes; "
                 "per-business fake rate alone scores AUC %.3f",
@@ -376,7 +392,8 @@ def main() -> None:
     cv = StratifiedGroupKFold(n_splits=args.folds, shuffle=True, random_state=SEED)
     outs: List[FoldOutput] = []
     for i, (tr, te) in enumerate(cv.split(df, y, groups), start=1):
-        outs.append(run_fold(i, df, tr, te, svd_dim, group_col))
+        outs.append(run_fold(i, df, tr, te, svd_dim, group_col,
+                             transductive=(args.features == "transductive")))
         if len(outs) >= n_folds:
             break
 
@@ -384,6 +401,7 @@ def main() -> None:
     result["config"] = {
         "folds": n_folds, "svd_components": svd_dim, "seed": SEED,
         "behavior_features": BehaviorFeaturizer().feature_names,
+        "feature_regime": args.features,
         "text_encoder": "TF-IDF(word 1-2gram + char 3-5gram) -> SVD + stylometric",
         "split": f"StratifiedGroupKFold grouped by {group_col}",
         "thresholds": "tuned per-model on a grouped validation slice",
@@ -394,9 +412,10 @@ def main() -> None:
     ]
 
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = METRICS_DIR / f"real_yelpchi_results_by_{args.group_by}.json"
+    suffix = "" if args.features == "inductive" else f"_{args.features}"
+    out_path = METRICS_DIR / f"real_yelpchi_results_by_{args.group_by}{suffix}.json"
     out_path.write_text(json.dumps(result, indent=2))
-    np.save(METRICS_DIR / f"training_losses_by_{args.group_by}.npy",
+    np.save(METRICS_DIR / f"training_losses_by_{args.group_by}{suffix}.npy",
             np.array([o.losses for o in outs], dtype=object), allow_pickle=True)
 
     logger.info("\n" + "=" * 78)

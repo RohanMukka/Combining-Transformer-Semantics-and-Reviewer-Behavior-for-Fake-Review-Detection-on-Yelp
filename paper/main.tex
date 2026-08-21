@@ -10,6 +10,7 @@
 \usepackage{balance}
 \usepackage{enumitem}
 \usepackage{url}
+\usepackage{siunitx}
 % The repository name is long; let it wrap at hyphens and slashes.
 \Urlmuskip=0mu plus 1mu\relax
 \def\UrlBreaks{\do\/\do\-\do\.}
@@ -473,9 +474,12 @@ consistency rather than from significance thresholds.
 
 \subsection{The Protocol Gap}
 
-Table~\ref{tab:protocol} is the paper's central result. It reports AUC-ROC for
-every model under both protocols; the models, features, hyperparameters, and
-tuning procedure are identical, and only the fold partitioning differs.
+Table~\ref{tab:protocol} reports AUC-ROC for every model under both splits in
+the inductive feature regime; the models, features, hyperparameters, and tuning
+procedure are identical, and only the fold partitioning differs. Read on its
+own this table overstates its case, for reasons Section~\ref{sec:regime} takes
+up; we present it first because it is the comparison the literature implicitly
+makes, and because the ordering within it is informative regardless.
 
 \input{tables/protocol_comparison}
 
@@ -499,13 +503,16 @@ a small set of business-level aggregates --- loses 0.289, falling from the best
 model in the comparison protocol (0.934) to the worst in the primary one
 (0.646).
 
-That reversal is the finding. Under the reviewer-disjoint protocol, the natural
+That reversal is striking. Under the reviewer-disjoint protocol, the natural
 reading of Table~\ref{tab:protocol} is that behavioral features dominate textual
 ones for fake review detection on YelpCHI, and that a random forest over 19
 behavioral features is the model to beat. Under the business-disjoint protocol
-that conclusion inverts. Most of what the behavior branch contributes on this
-benchmark is knowing which businesses attract spam, not knowing what a spammer
-does.
+that conclusion inverts.
+
+The tempting conclusion --- and the one an earlier version of this work drew ---
+is that most of what the behavior branch contributes is knowing which businesses
+attract spam rather than knowing what a spammer does. That reading does not
+survive the second axis.
 
 \subsection{Business-Disjoint Performance}
 
@@ -589,6 +596,64 @@ The error profile is what the threshold objective implies: tuning for Macro-F1
 under 14.5\% prevalence buys fake-class recall at a substantial cost in false
 positives. For deployment this trade-off should be set from the relative cost of
 suppressing a genuine review versus missing a fake one, not from Macro-F1.
+
+\subsection{Feature Regime: Removing Leakage vs.\ Removing Information}
+\label{sec:regime}
+
+Table~\ref{tab:protocol} holds the split fixed as the only variable and finds a
+large gap. But the inductive regime it uses does something stronger than
+removing leakage: for a business absent from training, every business-level
+feature becomes one constant. The model is not merely prevented from recognising
+a known spam target --- it is prevented from observing the business at all.
+
+Table~\ref{tab:regime} repeats the business-disjoint protocol under both feature
+regimes. The transductive regime changes nothing about the split, the models, or
+the tuning, and uses no labels; it only permits a held-out business to be
+described by its own reviews, as a deployed system would observe it.
+
+\input{tables/regime_comparison}
+
+The difference is substantial, and it means the collapse in
+Table~\ref{tab:protocol} cannot be attributed to leakage alone. Part of it is
+leakage --- business identity really is unavailable for an unseen business ---
+and part is a self-inflicted wound from a featurisation strict enough to discard
+the transferable business profiles of Section~\ref{sec:integrity}. Separating
+the two is the point of the second axis, and it is the correction we consider
+the most useful contribution of this paper: a protocol that removes information
+along with leakage will make any behavioral method look worse than it is, and
+will do so invisibly.
+
+\subsection{Graph Models and the Limits of a Business-Disjoint Split}
+\label{sec:graph}
+
+Graph methods sharpen the same point, because for them the distinction between
+the two feature regimes is not a choice. Message passing over the review graph
+aggregates over a node's neighbours, and in the R-S-R relation those neighbours
+are other reviews of the same business. A transductive GNN therefore reconstructs
+a business profile whether or not its feature matrix was allowed to contain one.
+
+Two measurements make this concrete. First, where a held-out review's
+same-business neighbours live: under a reviewer-disjoint split
+\SI{80.1}{\percent} of them sit in the training set, and under a
+business-disjoint split \SI{0.0}{\percent} do. Second, what the resulting
+structure is worth: on a business-disjoint fold, a node's R-S-R degree alone ---
+a count the split was meant to withhold --- scores an AUC of 0.696, while the
+same quantity presented as the feature \texttt{prod\_review\_count} under the
+inductive regime is a constant worth 0.500.
+
+\input{tables/graph_comparison}
+
+Table~\ref{tab:graph} reports the consequence. The relation-aware GNN and the
+degree control --- the same behavior MLP given only the two full-graph degrees
+--- are close, which locates the GNN's advantage in structural bookkeeping
+rather than in relational learning that a feature model could not perform.
+
+The implication for benchmarking is narrower than "graph methods leak" and more
+awkward: a business-disjoint split is necessary but not sufficient for a
+transductive graph model, because the topology re-encodes what the split
+removed from the features. Reporting a business-disjoint number for such a model
+without also stating what its edges carry does not settle the question the split
+was posed to answer.
 
 \subsection{What the Behavior Branch Actually Uses}
 

@@ -8,8 +8,14 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{balance}
+\usepackage{enumitem}
+\usepackage{url}
+% The repository name is long; let it wrap at hyphens and slashes.
+\Urlmuskip=0mu plus 1mu\relax
+\def\UrlBreaks{\do\/\do\-\do\.}
 
 \hypersetup{
+    breaklinks=true,
     colorlinks=true,
     linkcolor=black,
     citecolor=black,
@@ -115,7 +121,7 @@ observed. The gap between them measures the shortcut.
 
 Our contributions are:
 
-\begin{enumerate}
+\begin{enumerate}[leftmargin=*, topsep=2pt, itemsep=2pt, parsep=0pt]
 \item A quantification of business-identity leakage in YelpCHI
       (Section~\ref{sec:integrity}), and a demonstration that it accounts for
       the majority of the apparent performance of behavioral fake review
@@ -161,9 +167,10 @@ bag-of-words baselines for review classification. Most recently the review
 ecosystem has been modeled as a heterogeneous graph over reviewers, businesses,
 and reviews. Rayana and Akoglu~\cite{rayana2015collective} propagate spam
 evidence through reviewer--product networks, and graph neural
-networks~\cite{kipf2017semi, wang2020attributed} learn representations over the
+networks~\cite{kipf2017semi, dou2020enhancing} learn representations over the
 same structure. The YelpCHI distribution used by much of this line of work
-descends from Rayana and Akoglu's release.
+descends from Rayana and Akoglu's release, most often through the packaging
+released with CARE-GNN~\cite{dou2020enhancing}.
 
 \subsection{Evaluation and Leakage}
 
@@ -658,9 +665,18 @@ University of Oklahoma, for guidance throughout this project.
 \section*{Reproducibility}
 
 Code, the data integrity audit, and the metrics behind every table and figure in
-this paper are available in the project repository. All result tables are
-generated programmatically from the recorded metrics files rather than
-transcribed by hand.
+this paper are available at
+
+\begin{center}
+\begin{minipage}{0.95\columnwidth}
+\footnotesize\sloppy
+\url{https://github.com/RohanMukka/Combining-Transformer-Semantics-and-Reviewer-Behavior-for-Fake-Review-Detection-on-Yelp}
+\end{minipage}
+\end{center}
+
+\noindent All result tables are generated programmatically from the recorded
+metrics files rather than transcribed by hand, and both evaluation protocols
+run from a single command each.
 
 % ============================================================
 % REFERENCES
@@ -697,8 +713,8 @@ Y.~Liu, M.~Ott, N.~Goyal, J.~Du, M.~Joshi, D.~Chen, O.~Levy, M.~Lewis, L.~Zettle
 \bibitem{kipf2017semi}
 T.~N.~Kipf and M.~Welling, ``Semi-supervised classification with graph convolutional networks,'' in \textit{Proc. ICLR}, Toulon, France, 2017.
 
-\bibitem{wang2020attributed}
-Z.~Wang, K.~Hou, D.~Song, Z.~Li, T.~Zhang, and G.~Hu, ``Attributed graph neural network for fake review detection,'' in \textit{Proc. IEEE ICDM}, Sorrento, Italy, 2020, pp.~621--630.
+\bibitem{dou2020enhancing}
+Y.~Dou, Z.~Liu, L.~Sun, Y.~Deng, H.~Peng, and P.~S.~Yu, ``Enhancing graph neural network-based fraud detectors against camouflaged fraudsters,'' in \textit{Proc. ACM CIKM}, Virtual Event, Ireland, 2020, pp.~315--324.
 
 \bibitem{kaufman2012leakage}
 S.~Kaufman, S.~Rosset, C.~Perlich, and O.~Stitelman, ``Leakage in data mining: Formulation, detection, and avoidance,'' \textit{ACM Trans. Knowledge Discovery from Data}, vol.~6, no.~4, pp.~1--21, 2012.

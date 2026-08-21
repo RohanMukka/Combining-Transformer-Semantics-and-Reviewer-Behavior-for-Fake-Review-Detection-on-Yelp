@@ -202,7 +202,7 @@ def fig_roc(scores: Dict) -> None:
 
 
 def fig_shap_behavior() -> None:
-    """Mean |SHAP| per behaviour feature, from the behaviour-branch MLP."""
+    """Mean |SHAP| per behavior feature, from the behavior-branch MLP."""
     path = METRICS / "shap_behavior.npz"
     if not path.exists():
         logger.warning("  %s absent - skipping SHAP figure", path)
@@ -222,7 +222,7 @@ def fig_shap_behavior() -> None:
     ax.set_yticklabels([names[i].replace("_", r"\_") if False else names[i] for i in order],
                        fontsize=7.5)
     ax.set_xlabel("Mean |SHAP value|")
-    ax.set_title("Behaviour-branch attribution (business-level features in red)")
+    ax.set_title("Behavior-branch attribution (business-level features in red)")
     _save(fig, "shap_behavior_summary")
 
 

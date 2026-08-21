@@ -57,7 +57,7 @@ def table_main(prod: Dict) -> str:
 \\begin{{table*}}[t]
 \\caption{{Five-fold cross-validated performance on YelpCHI under the
 business-disjoint protocol (mean $\\pm$ s.d. across folds). Decision thresholds
-for every model are tuned on a held-out validation slice to maximise Macro-F1.}}
+for every model are tuned on a held-out validation slice to maximize Macro-F1.}}
 \\label{{tab:results}}
 \\centering
 \\small
@@ -87,7 +87,7 @@ def table_protocol(prod: Dict, user: Dict) -> str:
 \\caption{{Effect of the evaluation protocol on AUC-ROC. The reviewer-disjoint
 split allows a business to appear in both training and test folds; the
 business-disjoint split does not. The gap is the portion of apparent
-performance attributable to memorising which businesses were spam targets.}}
+performance attributable to memorizing which businesses were spam targets.}}
 \\label{{tab:protocol}}
 \\centering
 \\footnotesize

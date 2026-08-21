@@ -10,38 +10,57 @@ the performance usually reported on that benchmark is real.
 ## Summary
 
 Fake reviews in YelpCHI are concentrated by business. 657 of its 1,224
-businesses contain **zero** fake reviews, the median business fake rate is
-exactly zero, and mapping each review to its business's fake rate is by itself
-a **0.951-AUC** predictor of the label. Any evaluation that lets a business
-appear in both training and test folds is therefore partly measuring
-memorisation of which businesses were spam targets.
+businesses contain **zero** fake reviews, and the per-business fake rate alone
+is a **0.951-AUC** predictor of the label. The usual response is to group
+cross-validation folds so no business spans the split, and that produces a
+dramatic collapse — a behavioural random forest falls from 0.934 to 0.646
+AUC-ROC.
 
-We evaluate the same models under two protocols that differ *only* in how folds
-are partitioned:
+**That reading is only half right, and the other half is the point of this
+repo.** Business-level quantities are not one thing. They divide into three
+kinds that the conventional protocol conflates:
 
-| Model | Reviewer-disjoint | Business-disjoint | Gap |
+| Kind | Example | Uses labels? | Transfers to an unseen business? |
 |---|---|---|---|
-| Text-only MLP | 0.743 | 0.712 | +0.032 |
-| TF-IDF + LogReg | 0.762 | 0.700 | +0.062 |
-| TF-IDF + LinearSVM | 0.740 | 0.666 | +0.074 |
-| **ReviewGuard (Fusion)** | 0.856 | **0.730** | +0.126 |
-| Behavior-only MLP | 0.889 | 0.706 | +0.183 |
-| Behavior + LogReg | 0.782 | 0.599 | +0.183 |
-| Behavior + RandomForest | 0.934 | 0.646 | **+0.289** |
+| Label-derived | observed fake rate of the business | **yes** | leakage — never usable |
+| Business identity | "this restaurant was targeted before" | no | **no** — removed by a business-disjoint split |
+| Label-free profile | its reviews' length, rating spread, size | no | **yes — 0.805 AUC** |
 
-*AUC-ROC, mean over 5 folds.*
+The third kind is not a shortcut. A platform observes it for a brand-new
+listing, and trained on one set of businesses it predicts on a *disjoint* set at
+0.805 business-level AUC. That is not recognising known targets; it is learning
+what a targeted business looks like. A featurisation strict enough to remove it
+along with the leakage — which is what fitting aggregates on training rows only
+does — understates the method rather than correcting it.
 
-The gap scales with how directly a model can reach business identity. The
-behavioral random forest goes from best model under the weaker protocol to
-worst under the stricter one — the ranking of behavioral and textual features
-inverts. Most of what a behavior branch contributes on this benchmark is
-knowing which businesses attract spam, not knowing what a spammer does.
+So this repo evaluates along **two axes**, not one:
 
-Under the business-disjoint protocol ReviewGuard reaches **0.730 AUC-ROC** and
-**0.626 Macro-F1**, ahead of the text-only branch on 5/5 folds and the
-behavior-only branch on 4/5. With five folds the Wilcoxon signed-rank test
-bottoms out at *p* = 0.0625, so none of these margins clears α = 0.05; we read
-them as a real but modest fusion benefit, not a decisive win.
+- **Split** — `--group-by product` (business-disjoint) or `user` (reviewer-disjoint)
+- **Feature regime** — `--features inductive` (aggregates from training rows only)
+  or `transductive` (from the whole corpus, labels never touched)
+
+### Graph models make the distinction unavoidable
+
+Message passing aggregates over a node's same-business neighbours, so a
+transductive GNN rebuilds a business profile whatever its feature matrix was
+allowed to contain. Two measurements:
+
+- Of a held-out review's same-business neighbours, **80.1%** sit in the training
+  set under a reviewer-disjoint split and **0.0%** under a business-disjoint one.
+- On a business-disjoint fold, a node's R-S-R degree alone scores **AUC 0.696** —
+  while the same quantity as the feature `prod_review_count` under the inductive
+  regime is a constant worth 0.500.
+
+The degree control settles what that is worth. The GNN reaches **0.816** under
+the business-disjoint split against **0.706** for the same features without a
+graph. Handing a plain MLP just those two degrees recovers **0.788** — roughly
+three quarters of the difference — and R-S-R degree *alone* (0.708) matches the
+entire 19-feature inductive set. So the larger part of the GNN's advantage is a
+count the split was meant to withhold; the remainder is the honest size of the
+relational contribution.
+
+**A business-disjoint split is therefore necessary but not sufficient for a
+graph model** — the topology re-encodes what the split removed from the features.
 
 ## Data integrity audit
 
@@ -110,10 +129,11 @@ transformer variant is the single most promising open item.
 
 Three choices matter for interpreting the numbers:
 
-1. **Fold-aware features.** Reviewer and business aggregates are fitted on a
-   fold's *training* rows and applied to held-out rows, with training-set priors
-   for unseen keys. Computing them over the full corpus — the natural
-   implementation — leaks the evaluation fold into the features.
+1. **Fold-aware features, both ways.** `--features inductive` fits reviewer and
+   business aggregates on a fold's *training* rows, with training-set priors for
+   unseen keys. `--features transductive` fits them over the whole corpus with
+   labels never touched. Neither uses a label; reporting both is what separates
+   removing leakage from removing information.
 2. **Every model's threshold is tuned.** Under 14.53% positive prevalence, a
    classifier left at 0.5 predicts the majority class nearly everywhere.
    Thresholds for all models, baselines included, are tuned on a held-out
@@ -132,9 +152,16 @@ pip install -r requirements.txt
 # 1. Audit the raw data and write the trusted review table
 python -m src.build_real_dataset
 
-# 2. Both evaluation protocols (~15 min each, 4 CPU cores)
+# 2. Both axes: split x feature regime (~15 min each, 4 CPU cores)
 python -m src.run_real_experiments --folds 5 --group-by product   # primary
 python -m src.run_real_experiments --folds 5 --group-by user      # comparison
+python -m src.run_real_experiments --folds 5 --group-by product --features transductive
+python -m src.run_real_experiments --folds 5 --group-by user    --features transductive
+
+# 2b. Graph models and the control that isolates what their edges carry
+python -m src.graph_gnn       --folds 5 --group-by product
+python -m src.graph_gnn       --folds 5 --group-by user
+python -m src.degree_control  --folds 5 --group-by product
 
 # 3. Per-fold scores for the ROC / confusion-matrix / SHAP figures
 python -m src.dump_fold_scores --fold 1 --group-by product
@@ -158,13 +185,18 @@ src/
   behavior_featurizer.py    fold-aware reviewer/business features
   text_representation.py    TF-IDF+SVD encoder; RobertaEncoder (not run here)
   losses.py                 focal loss
-  run_real_experiments.py   5-fold CV, both protocols, Wilcoxon tests
+  run_real_experiments.py   5-fold CV, both axes, Wilcoxon tests
+  graph_gnn.py              relation-aware GNN + neighbourhood audit
+  degree_control.py         isolates graph structure from relational learning
   dump_fold_scores.py       single-fold scores for curve figures + SHAP
   make_figures.py           all figures
   make_tables.py            all LaTeX tables, from the metrics JSON
 results/metrics/
-  real_yelpchi_results_by_product.json   primary protocol
-  real_yelpchi_results_by_user.json      comparison protocol
+  real_yelpchi_results_by_product.json   primary split, inductive
+  real_yelpchi_results_by_user.json      comparison split, inductive
+  real_yelpchi_results_by_*_transductive.json   label-free regime
+  gnn_results_by_*.json                  relation-aware GNN
+  degree_control_by_*.json               degree control
   data_integrity_audit.json              audit diagnostics
   superseded/                            earlier, unsound results — see its README
 paper/

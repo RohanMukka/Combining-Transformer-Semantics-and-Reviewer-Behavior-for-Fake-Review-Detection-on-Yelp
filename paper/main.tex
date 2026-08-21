@@ -652,10 +652,17 @@ inductive regime is a constant worth 0.500.
 
 \input{tables/graph_comparison}
 
-Table~\ref{tab:graph} reports the consequence. The relation-aware GNN and the
-degree control --- the same behavior MLP given only the two full-graph degrees
---- are close, which locates the GNN's advantage in structural bookkeeping
-rather than in relational learning that a feature model could not perform.
+Table~\ref{tab:graph} reports the consequence. The relation-aware GNN reaches
+0.816 AUC under the business-disjoint split, well above the 0.706 of the same
+behavioral features without a graph. Handing those two degrees to a plain MLP
+recovers 0.788 of that --- roughly three quarters of the difference --- and
+R-S-R degree on its own (0.708) matches what the entire 19-feature inductive set
+achieves.
+
+We read the remainder as the honest size of the relational contribution. The
+larger part of the GNN's advantage is a count that the business-disjoint split
+was intended to withhold and that a feature model can simply be handed; the
+smaller part is not, and we do not claim message passing buys nothing here.
 
 The implication for benchmarking is narrower than "graph methods leak" and more
 awkward: a business-disjoint split is necessary but not sufficient for a

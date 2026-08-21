@@ -39,6 +39,40 @@ So this repo evaluates along **two axes**, not one:
 - **Feature regime** — `--features inductive` (aggregates from training rows only)
   or `transductive` (from the whole corpus, labels never touched)
 
+### How much of the collapse was real?
+
+Restoring only label-free business profiles — no labels, nothing else about the
+split, models or tuning changed:
+
+| Model | Regime gain |
+|---|---|
+| Behavior + RandomForest | **+0.252** |
+| Behavior + LogReg | +0.216 |
+| Behavior-only MLP | +0.211 |
+| ReviewGuard (Fusion) | +0.124 |
+| Text-only MLP | **+0.000** |
+| TF-IDF + LogReg | **+0.000** |
+| TF-IDF + LinearSVM | **+0.000** |
+
+Text models move by *exactly* zero to three decimals. The regime governs only
+reviewer/business aggregates and text models consume none, so a nonzero value
+there would be a bug rather than a finding — `verify_paper_numbers.py` asserts
+those zeros.
+
+Decomposing the random forest's collapse: **0.289** lost to the stricter split,
+**0.252** returned by restoring label-free profiles, **0.037** residual. So
+roughly **87% of the apparent leakage was withheld information**, and about 13%
+was business identity genuinely unavailable for an unseen business.
+
+### The fusion result reverses
+
+Under the label-free regime, behaviour-only reaches **0.917** against
+ReviewGuard's **0.853**, winning **5 of 5 folds**. Concatenation helps when the
+branches are comparably strong (inductive: 0.706 vs 0.712) and hurts when they
+are not (transductive: 0.917 vs 0.712 — a strong 19-dim signal diluted across
+266 weak text dimensions). There is **no regime-independent fusion benefit**
+in these results.
+
 ### Graph models make the distinction unavoidable
 
 Message passing aggregates over a node's same-business neighbours, so a

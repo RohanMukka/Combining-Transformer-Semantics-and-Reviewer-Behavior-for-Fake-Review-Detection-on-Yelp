@@ -53,13 +53,29 @@ BEHAVIOR_FEATURES: List[str] = REVIEW_LEVEL + REVIEWER_LEVEL + PRODUCT_LEVEL
 
 @dataclass
 class BehaviorFeaturizer:
-    """Fit reviewer/product statistics on training rows; apply them anywhere.
+    """Fit reviewer/product statistics, then apply them anywhere.
 
-    include_product controls whether product-level columns are emitted at all,
-    so the same code can produce the leakage-free and leakage-exposed variants.
+    include_product controls whether product-level columns are emitted at all.
+
+    `transductive` selects which statistics a held-out review is allowed to
+    carry, and the choice matters more than it first appears:
+
+    * False (inductive) - every aggregate comes from the fold's *training*
+      rows. A business absent from training collapses to a single constant.
+      This is the strictest reading, but it discards information a platform
+      genuinely holds: a new restaurant's own reviews are observable, and
+      nothing about them requires knowing their labels.
+    * True (transductive, label-free) - aggregates are computed from every
+      review in the corpus, labels excluded. A held-out business is described
+      by its own reviews. This is what message passing over the review graph
+      effectively gives a GNN, and what a deployed detector would actually see.
+
+    Neither regime ever touches a label. The quantity that does - the observed
+    fake rate of a business, a 0.951-AUC predictor - is never a feature here.
     """
 
     include_product: bool = True
+    transductive: bool = False
     _user: Optional[pd.DataFrame] = field(default=None, repr=False)
     _prod: Optional[pd.DataFrame] = field(default=None, repr=False)
     _prior: Dict[str, float] = field(default_factory=dict, repr=False)
@@ -71,17 +87,31 @@ class BehaviorFeaturizer:
             names = names + PRODUCT_LEVEL
         return names
 
-    def fit(self, train: pd.DataFrame) -> "BehaviorFeaturizer":
-        t = train.copy()
+    def fit(self, train: pd.DataFrame,
+            corpus: Optional[pd.DataFrame] = None) -> "BehaviorFeaturizer":
+        """Fit the aggregate tables.
+
+        In transductive mode `corpus` supplies the (unlabelled) rows the
+        aggregates are computed over; it defaults to `train` so the inductive
+        path is unchanged.
+        """
+        source = train if not self.transductive else (
+            corpus if corpus is not None else train
+        )
+        t = source.copy()
         t["_wc"] = t["text"].astype(str).str.split().str.len().astype(float)
         r = t["rating"].astype(float)
 
+        # Priors always come from the training rows, so an unseen key falls
+        # back to something the model could legitimately have known.
+        pr = train["rating"].astype(float)
+        pt = train["text"].astype(str).str.split().str.len().astype(float)
         self._prior = {
-            "rating_mean": float(r.mean()),
-            "rating_std": float(r.std()),
-            "word_count": float(t["_wc"].mean()),
-            "extreme_ratio": float(r.isin([1.0, 5.0]).mean()),
-            "positive_ratio": float((r >= 4.0).mean()),
+            "rating_mean": float(pr.mean()),
+            "rating_std": float(pr.std()),
+            "word_count": float(pt.mean()),
+            "extreme_ratio": float(pr.isin([1.0, 5.0]).mean()),
+            "positive_ratio": float((pr >= 4.0).mean()),
             "rev_review_count": 1.0,
             "prod_review_count": float(t.groupby("product_id").size().median()),
         }

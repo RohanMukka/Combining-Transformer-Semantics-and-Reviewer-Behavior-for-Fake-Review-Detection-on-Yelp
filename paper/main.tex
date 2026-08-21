@@ -263,9 +263,39 @@ near-constant within a business.}
 \end{figure*}
 
 This is not an error --- it reflects how spam campaigns actually work, and how
-the corpus was collected. But it means that business identity is close to a
-sufficient statistic for the label, and that any feature which encodes business
-identity is a shortcut.
+the corpus was collected. But it means business identity is close to a
+sufficient statistic for the label, and that makes any business-level quantity
+suspect. The temptation is to treat all of them as shortcuts and remove them.
+That is too blunt, and getting the distinction right turns out to matter more
+than the split itself. Three different things are easily conflated:
+
+\begin{enumerate}[leftmargin=*, topsep=2pt, itemsep=3pt, parsep=0pt]
+\item \textbf{Label-derived business statistics.} The observed fake rate of a
+      business, or anything computed from it. This is the 0.951-AUC quantity
+      above. It is unambiguous leakage --- it cannot be known at prediction
+      time --- and it is never a feature in this paper.
+\item \textbf{Business identity.} Knowing that \textit{this particular}
+      business has been targeted before. Available whenever a business appears
+      on both sides of a split, and useless for a business never seen. This is
+      what a business-disjoint split removes.
+\item \textbf{Label-free business profiles.} How long this business's reviews
+      run, how tightly its ratings cluster, how many distinct reviewers it has.
+      These are computed from the business's own reviews without reference to
+      any label, and a platform observes them for a brand-new listing.
+\end{enumerate}
+
+\noindent The third category is not a shortcut, and treating it as one is a
+mistake we made before correcting it. Trained on one set of businesses and
+evaluated on a \textit{disjoint} set, a profile of four such statistics reaches
+0.906 review-level AUC and 0.805 AUC when scored once per business. That is not
+recognising known spam targets; it is learning what a targeted business looks
+like and applying it to businesses never seen. The signal transfers, and a
+detector that discards it is handicapping itself for no methodological gain.
+
+We therefore treat the source of a feature as a second experimental axis
+alongside the split (Section~\ref{sec:protocol}), and report both. The
+distinction between the two lower categories is invisible under the
+conventional protocol, which is precisely the problem.
 
 % ============================================================
 % IV. METHOD
@@ -362,11 +392,14 @@ stopping after six epochs without improvement.
 \section{Experimental Setup}
 \label{sec:setup}
 
-\subsection{Two Protocols}
+\subsection{Two Axes}
 \label{sec:protocol}
 
-Both protocols use five-fold cross-validation, stratified by label, and differ
-only in the variable on which folds are made disjoint.
+Evaluations here vary along two independent axes. The first is the split; the
+second is where a feature's supporting statistics may come from. Both are
+five-fold, stratified by label.
+
+\subsubsection{Split}
 
 \textbf{Business-disjoint (primary).} Folds are grouped by business identifier,
 so every business in a test fold is unseen during training. This is the setting
@@ -376,11 +409,29 @@ in which a detector must generalize to businesses it has no history for.
 identifier, so no reviewer spans the split but businesses may. This corresponds
 to the precaution commonly taken in this literature.
 
-Within each fold we reserve a grouped, stratified validation slice
-(20\% of the training portion, disjoint on the same variable) used for early
-stopping and threshold selection. Every fitted object --- TF-IDF vocabularies,
-the SVD basis, feature scalers, and the reviewer and business aggregate tables
---- is fit on the fold's training portion alone.
+\subsubsection{Feature regime}
+
+\textbf{Inductive.} Reviewer and business aggregates are computed from the
+fold's training rows only. A business absent from training falls back to a
+training-set prior --- a single constant, worth an AUC of 0.500 on its own.
+This is the strictest available reading.
+
+\textbf{Transductive (label-free).} The same aggregates are computed over every
+review in the corpus, with labels untouched, so a held-out business is
+described by its own reviews. This is what a deployed detector observes for a
+new listing, and, as Section~\ref{sec:graph} shows, what message passing over
+the review graph implicitly hands a graph model.
+
+Neither regime uses a label at any point. We report both because the difference
+between them is the difference between removing leakage and removing
+information, and the two are easy to confuse: the inductive regime is safe by
+construction but discards the transferable business profiles of
+Section~\ref{sec:integrity}, and so understates what behavioral features can do.
+
+Within each fold we reserve a grouped, stratified validation slice (20\% of the
+training portion, disjoint on the same variable) for early stopping and
+threshold selection. TF-IDF vocabularies, the SVD basis, and feature scalers are
+always fit on the fold's training portion alone, in both regimes.
 
 \subsection{Threshold Tuning}
 

@@ -91,6 +91,21 @@ def build_claims() -> List[Tuple[str, float, Optional[float]]]:
 
     if gnn_p:
         add("Relation GNN, business-disjoint", 0.816, _auc(gnn_p, "Relation GNN"))
+    if gnn_u:
+        add("Relation GNN, reviewer-disjoint", 0.938, _auc(gnn_u, "Relation GNN"))
+    if gnn_p and gnn_u:
+        add("Relation GNN protocol gap", 0.122,
+            _auc(gnn_u, "Relation GNN") - _auc(gnn_p, "Relation GNN"))
+    if deg_p and deg_u:
+        sp, su = deg_p["summary"], deg_u["summary"]
+        add("behavior MLP protocol gap", 0.183,
+            su["Behavior MLP"]["auc_roc"]["mean"] - sp["Behavior MLP"]["auc_roc"]["mean"])
+        add("MLP+degree protocol gap", 0.095,
+            su["Behavior MLP + graph degree"]["auc_roc"]["mean"]
+            - sp["Behavior MLP + graph degree"]["auc_roc"]["mean"])
+        add("R-S-R degree protocol gap", 0.001,
+            su["R-S-R degree alone"]["auc_roc"]["mean"]
+            - sp["R-S-R degree alone"]["auc_roc"]["mean"])
     if deg_p:
         s = deg_p["summary"]
         add("behavior MLP + graph degree, bus-disj", 0.788,

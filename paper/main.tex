@@ -705,6 +705,22 @@ handed. We read the remainder as the honest size of the relational contribution:
 message passing is not doing nothing here, but it is doing considerably less
 than the raw comparison against a feature model would suggest.
 
+Read down the gap column, Table~\ref{tab:graph} orders the four rows by how much
+of each model's information comes from rows a split can partition. The behavior
+MLP sits at the top with $+0.183$: everything it knows is computed from rows,
+and the split rearranges all of it. A degree sits at the bottom with $+0.001$:
+nothing it knows is computed from rows. The two graph-informed models fall in
+between, at $+0.095$ and $+0.122$.
+
+This yields a conclusion worth stating carefully, because its sign is the
+opposite of what one might expect. The GNN is \textit{less} disturbed by the
+stricter protocol than the plain feature model --- it loses 0.122 where the MLP
+loses 0.183. That is not evidence that it generalizes better to unseen
+businesses. It is evidence that a larger share of what it relies on lives
+somewhere the split cannot reach. A model can be made to look robust to a
+leakage control simply by drawing its information through a channel the control
+does not govern.
+
 The implication for benchmarking is narrower than "graph methods leak" and more
 awkward: a business-disjoint split is necessary but not sufficient for a
 transductive graph model, because the topology re-encodes what the split

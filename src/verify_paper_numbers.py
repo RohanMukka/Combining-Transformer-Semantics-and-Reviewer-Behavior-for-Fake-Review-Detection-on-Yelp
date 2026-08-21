@@ -42,9 +42,28 @@ def build_claims() -> List[Tuple[str, float, Optional[float]]]:
     deg_p = _load("degree_control_by_product.json")
     deg_u = _load("degree_control_by_user.json")
     prod_t = _load("real_yelpchi_results_by_product_transductive.json")
+    user_t = _load("real_yelpchi_results_by_user_transductive.json")
 
     c: List[Tuple[str, float, Optional[float]]] = []
     add = lambda *a: c.append(a)
+
+    # Descriptive statistics quoted in the prose. These sit in sentences rather
+    # than tables, which is exactly where a wrong number survives unnoticed --
+    # an earlier draft said the median business had 37 reviews, which is the
+    # mean.
+    corpus = REPO / "data" / "processed" / "yelpchi_real.parquet"
+    if corpus.exists():
+        import pandas as pd
+        df = pd.read_parquet(corpus)
+        per_business = df.groupby("product_id").size()
+        add("reviews in corpus", 45954, len(df))
+        add("fake reviews", 6677, int(df["label"].sum()))
+        add("fake rate", 0.1453, float(df["label"].mean()))
+        add("distinct businesses", 1224, df["product_id"].nunique())
+        add("distinct reviewers", 39623, df["user_id"].nunique())
+        add("median reviews per business", 10, float(per_business.median()))
+        add("mean reviews per business", 38, round(float(per_business.mean())))
+        add("businesses held out per fold", 244, df["product_id"].nunique() // 5)
 
     if audit:
         t, b = audit["timestamps"], audit.get("business_identity", {})

@@ -54,26 +54,32 @@ rithwikreddyd@ou.edu}
 % ============================================================
 
 \begin{abstract}
-YelpCHI is the standard benchmark for fake review detection, and reported
-accuracies on it are high. We show that much of that performance does not come
-from detecting deception. Fake reviews in YelpCHI are concentrated by business:
-657 of its 1{,}224 businesses contain no fake reviews at all, and the
-per-business fake rate is by itself a 0.951-AUC predictor of the label. Any
-split that lets a business appear in both training and test folds therefore
-partly measures memorization of which businesses were spam targets. We build
-ReviewGuard, a detector fusing a lexical text representation with reviewer- and
-business-level behavioral features, and evaluate it under two protocols
-differing only in how folds are partitioned. Under a reviewer-disjoint split ---
-the convention in this literature --- a behavioral random forest reaches 0.934
-AUC-ROC; under a business-disjoint split, with identical features, models, and
-tuning, it falls to 0.646. Each model's drop tracks its access to business
-identity, from 0.032 for a text-only model to 0.289 for the random forest,
-which is enough to invert the ranking of behavioral and textual features. We
-additionally document two integrity failures in a widely circulated
-distribution of the dataset: label-contaminated timestamps yielding 0.965 AUC
-from the timestamp alone, and a behavioral feature file uncorrelated with both
-the label and its own column definitions. We argue that business-disjoint
-evaluation should be reported alongside any YelpCHI result.
+Fake reviews in YelpCHI, the standard benchmark for this task, are concentrated
+by business: 657 of its 1{,}224 businesses contain no fake reviews at all, and
+the per-business fake rate alone is a 0.951-AUC predictor of the label. This
+makes every business-level quantity suspect, and the usual response --- grouping
+cross-validation folds so that no business spans the split --- produces a large
+apparent collapse. A behavioral random forest falls from 0.934 to 0.646 AUC-ROC
+under that change, enough to invert the ranking of behavioral and textual
+features. We show that reading is only half right. Business-level quantities
+divide into three kinds that the conventional protocol conflates: statistics
+derived from labels, which are unambiguous leakage; the identity of a business
+known to have been targeted, which a business-disjoint split correctly removes;
+and label-free profiles of a business's own reviews, which a platform observes
+for a brand-new listing and which transfer to businesses never seen during
+training at 0.805 AUC. Removing the third along with the first two is not
+rigour but self-harm, and it is what a strict training-only featurization does.
+We therefore evaluate along two axes --- the split and the source of a feature's
+statistics --- and report both. Graph models make the distinction unavoidable:
+message passing reconstructs a business profile from a node's same-business
+neighbours regardless of what its feature matrix was allowed to contain, so a
+business-disjoint split is necessary but not sufficient for them. A relation-aware
+GNN is matched by a plain MLP given only two graph degrees, placing its advantage
+in structural bookkeeping rather than relational learning. We additionally
+document two integrity failures in a widely circulated distribution of the
+dataset: label-contaminated timestamps yielding 0.965 AUC from the timestamp
+alone, and a behavioral feature file uncorrelated with both the label and its
+own column definitions.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -123,23 +129,26 @@ observed. The gap between them measures the shortcut.
 Our contributions are:
 
 \begin{enumerate}[leftmargin=*, topsep=2pt, itemsep=2pt, parsep=0pt]
-\item A quantification of business-identity leakage in YelpCHI
-      (Section~\ref{sec:integrity}), and a demonstration that it accounts for
-      the majority of the apparent performance of behavioral fake review
-      detectors on this benchmark (Section~\ref{sec:results}).
+\item A separation of the three business-level quantities that the conventional
+      protocol conflates --- label-derived statistics, business identity, and
+      label-free business profiles --- with a measurement of what each is worth
+      (Section~\ref{sec:integrity}).
+\item A two-axis evaluation, varying the split and the source of a feature's
+      statistics independently, which shows that the apparent collapse under a
+      business-disjoint split is part leakage removal and part information
+      removal, and separates them (Section~\ref{sec:regime}).
+\item Evidence that a business-disjoint split is necessary but not sufficient
+      for a transductive graph model, because message passing reconstructs from
+      the topology what the split withheld from the features
+      (Section~\ref{sec:graph}).
 \item ReviewGuard, a two-branch detector fusing lexical text features with
       reviewer and business behavioral features, trained with focal loss under
-      severe class imbalance, evaluated under both protocols with per-model
-      threshold tuning so that baselines are not handicapped
-      (Section~\ref{sec:method}).
+      severe class imbalance, with per-model threshold tuning so that baselines
+      are not handicapped (Section~\ref{sec:method}).
 \item A data integrity audit of a widely circulated CSV distribution of
       YelpCHI, identifying label-contaminated timestamps and an uninformative
       behavioral feature file, both excluded from our experiments
       (Section~\ref{sec:integrity}).
-\item Evidence that the fusion benefit, unlike the behavioral advantage,
-      survives the stricter protocol --- alongside the observation that all
-      absolute performance under it is far below what this benchmark is
-      usually reported to support (Section~\ref{sec:results}).
 \end{enumerate}
 
 % ============================================================

@@ -101,29 +101,46 @@ has responded with detectors that combine review text with reviewer behavior,
 and reported numbers on the standard benchmark --- YelpCHI~\cite{rayana2015collective}
 --- are strong.
 
-This paper began as an attempt to build such a detector. In the course of doing
-so we found that the benchmark rewards a shortcut that has little to do with
-deception, and that the headline numbers a straightforward pipeline produces are
-largely an artifact of how the data is partitioned.
+This paper began as an attempt to build such a detector, and turned into an
+argument about how one should be measured.
 
-The mechanism is simple. YelpCHI was assembled by collecting reviews for a set
-of Chicago businesses. Spam campaigns target particular businesses, so the label
-is concentrated by business rather than spread uniformly: 657 of the 1{,}224
-businesses in the corpus contain zero fake reviews, the median business has a
-fake rate of exactly zero, and mapping each review to the fake rate of its
-business yields an AUC of 0.951 on its own. A model given any feature that
-identifies the business --- its review count, its rating distribution, or a
-rating deviation computed against its mean --- can score well by learning which
-businesses are spam targets, and will not transfer to a business it has not
-seen.
+The starting observation is that YelpCHI was assembled by collecting reviews for
+a set of Chicago businesses, and spam campaigns target particular businesses. The
+label is therefore concentrated by business rather than spread uniformly: 657 of
+the 1{,}224 businesses in the corpus contain zero fake reviews, the median
+business has a fake rate of exactly zero, and mapping each review to the fake
+rate of its business yields an AUC of 0.951 on its own. That figure makes every
+business-level quantity look like a shortcut, and suggests an obvious remedy ---
+group the cross-validation folds so that no business spans the split, and a model
+can no longer profit from recognising a business it has seen targeted before.
 
-We therefore evaluate under two protocols that are identical except for the
-grouping variable used to form cross-validation folds. The
-\textit{reviewer-disjoint} protocol guarantees that no reviewer spans the split,
-which is the precaution the literature normally takes. The
-\textit{business-disjoint} protocol additionally guarantees that no business
-spans the split, so a model must generalize to businesses it has never
-observed. The gap between them measures the shortcut.
+Doing so produces a dramatic collapse. A random forest over behavioral features
+falls from 0.934 to 0.646 AUC-ROC, enough to reverse the apparent ranking of
+behavioral and textual features. Read on its own, that looks like a
+demonstration that behavioral performance on this benchmark was mostly
+memorization.
+
+It is not, or not only. Business-level quantities are not one thing, and the
+split does not treat them alike. Statistics derived from labels are leakage and
+must go. The identity of a known target does not transfer, and grouping removes
+it correctly. But a label-free profile of a business's own reviews --- how long
+they run, how tightly its ratings cluster --- is something a platform observes
+for a listing created yesterday, and it transfers to businesses never seen
+during training at 0.805 AUC. A featurization strict enough to remove the first
+two typically removes the third as well, and the resulting number understates
+the method rather than correcting it. Ours did, which is how we came to notice.
+
+Graph models make the same point from the other direction, and more sharply. A
+node's degree in the same-business relation is worth 0.709 AUC under the
+reviewer-disjoint split and 0.708 under the business-disjoint one: the split
+moves it by 0.001, because a degree is read off the whole graph rather than
+computed from rows a split can partition. For a transductive graph model,
+grouping folds by business does not remove business information at all; it
+merely moves it from the feature matrix into the topology.
+
+We therefore treat the evaluation as having two axes rather than one --- how
+folds are split, and where a feature's supporting statistics may come from ---
+and report results across both.
 
 Our contributions are:
 
@@ -192,14 +209,17 @@ learning~\cite{geirhos2020shortcut}: models reach high accuracy through features
 that correlate with the label in the dataset's construction rather than in the
 phenomenon.
 
-Graph-based fake review detectors are structurally exposed to the effect we
-describe, because the reviewer--business graph makes business identity directly
-available. This does not invalidate that work --- in a deployment where a
-platform monitors a fixed, known set of businesses, exploiting business-level
-priors is legitimate. The problem is that the standard random or
-reviewer-grouped split does not distinguish between a detector that generalizes
-to new businesses and one that has learned a lookup table of past spam targets,
-and results are usually not reported in a way that separates the two.
+Graph-based fake review detectors are the case where this matters most, because
+the reviewer--business graph makes business identity structural rather than
+incidental. This does not invalidate that work --- a platform monitoring a
+fixed, known set of businesses may legitimately exploit business-level priors,
+and much of the deployment literature is in that setting. Two things are
+usually left unreported, though. The standard random or reviewer-grouped split
+does not distinguish a detector that generalizes to new businesses from one that
+has learned a lookup table of past targets; and, as Section~\ref{sec:graph}
+shows, the natural correction does not fix this for a graph model, because its
+edges reconstruct what the split withheld from its features. We are not aware of
+published YelpCHI results reported in a way that separates these.
 
 % ============================================================
 % III. DATA INTEGRITY AUDIT

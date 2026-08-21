@@ -30,7 +30,8 @@
 
 \begin{document}
 
-\title{How Much of Fake Review Detection on YelpCHI is Business Memorization?}
+\title{The Protocol Gap Is Not a Property of Your Model:\\
+Leakage and Information in YelpCHI Fake Review Detection}
 
 \author{
 \IEEEauthorblockN{Rohan Mukka}
@@ -330,90 +331,62 @@ conventional protocol, which is precisely the problem.
 \section{ReviewGuard}
 \label{sec:method}
 
-\subsection{Problem Formulation}
+The detector is a vehicle for the evaluation questions above rather than a
+contribution in itself, so we describe it compactly; the released code carries
+the full configuration.
 
 Given a review $r = (t, b)$ with text $t$ and behavioral context $b$, we learn
-$f : (t, b) \rightarrow [0,1]$ estimating $P(\text{fake} \mid t, b)$. Positives
-are reviews labeled as spam in the YelpCHI ground truth.
+$f : (t, b) \rightarrow [0,1]$ estimating $P(\text{fake} \mid t, b)$.
 
-\subsection{Text Branch}
+\textbf{Text branch (266 dims).} Word unigram--bigram and character 3--5-gram
+TF-IDF, each capped at 50{,}000 features with minimum document frequency five
+and sublinear scaling, concatenated and reduced by truncated SVD to 256
+dimensions. Character $n$-grams are included for robustness to the spelling and
+punctuation irregularity that distinguishes review registers. To this we append
+ten stylometric features in the tradition of Ott et al.~\cite{ott2011finding}:
+character and word counts, mean word length, capitalization, exclamation,
+question, digit and punctuation ratios, first-person pronoun ratio, and
+type--token ratio.
 
-The text branch encodes the review's actual text. We compute two TF-IDF
-representations --- word unigrams and bigrams, and character $n$-grams of length
-three to five with word-boundary padding --- each capped at 50{,}000 features
-with a minimum document frequency of five and sublinear term frequency scaling.
-Character $n$-grams are included because they are robust to the spelling
-irregularity and punctuation patterns that distinguish review registers. The two
-matrices are concatenated and reduced by truncated SVD to a 256-dimensional
-dense vector, which is the representation handed to the fusion model.
+\textbf{Behavior branch (19 dims).} Review-level: star rating, rating extremity
+$|{\text{rating}} - 3|$, word count. Reviewer-level: review count, singleton
+indicator, mean and standard deviation of ratings given, ratios of extreme and
+of positive ratings, distinct businesses reviewed, maximum reviews for a single
+business, mean review length. Business-level: review count, mean and standard
+deviation of ratings received, and the signed and absolute deviation of this
+review's rating from its business's mean. Two indicators,
+\texttt{rev\_seen\_in\_training} and \texttt{prod\_seen\_in\_training}, make the
+cold-start case explicit rather than hiding it in an imputed value. Where these
+aggregates are computed from is the second axis of
+Section~\ref{sec:protocol}, and matters more than any other choice here.
 
-To this we append ten stylometric features in the tradition of Ott et
-al.~\cite{ott2011finding}: character and word counts, mean word length,
-capitalization, exclamation, question mark, digit and punctuation ratios,
-first-person pronoun ratio, and type--token ratio. The text branch therefore
-contributes 266 dimensions.
+\textbf{Fusion.} The two vectors are standardized, concatenated, and classified
+by a two-layer MLP (256 and 64 units, ReLU, dropout 0.3), trained with focal
+loss~\cite{lin2017focal},
+\begin{equation}
+    L = -\alpha_t (1 - p_t)^{\gamma} \log(p_t),
+\end{equation}
+\noindent $\gamma = 2$ and $\alpha$ the training-set genuine-class frequency,
+against the 14.53\% positive rate. We optimize with Adam~\cite{kingma2015adam}
+at $10^{-3}$, batch size 256, at most 40 epochs, keeping the best validation-AUC
+weights and stopping after six epochs without improvement. Single-branch
+ablations use the same architecture on one branch, with $(64, 32)$ units for the
+behavior-only model to match its input dimensionality.
 
 \subsection{On the Absence of a Transformer Branch}
 
 The design we set out to evaluate used a fine-tuned RoBERTa-base
-encoder~\cite{liu2019roberta} in place of the lexical representation, taking the
-768-dimensional \texttt{[CLS]} embedding as the text vector. We report results
-with the lexical encoder instead, for an infrastructural reason we state plainly
-rather than obscure: the compute environment available for this study had no GPU
-and no network route to a pre-trained model repository, so the transformer
-branch could not be run. The encoder is implemented and released with our code
-so that the comparison can be completed where those resources exist.
+encoder~\cite{liu2019roberta} in place of the lexical representation. We report
+the lexical encoder instead for an infrastructural reason we state plainly: the
+compute environment for this study had no GPU and no network route to a
+pre-trained model repository. The transformer encoder is implemented and
+released with our code so the comparison can be completed where those resources
+exist.
 
-This is a real limitation on the text side of our results, and it means our
-text branch is a lower bound on what a text branch can do. It does not affect
-the paper's central claim, which concerns the evaluation protocol and applies to
-any text encoder: the business-disjoint gap we measure is a property of the
-benchmark's label structure, not of the representation used.
-
-\subsection{Behavior Branch}
-
-The behavior branch encodes 19 features in three groups. Review-level: star
-rating, rating extremity $|{\text{rating}} - 3|$, and review word count.
-Reviewer-level: review count, a singleton indicator, mean and standard deviation
-of ratings given, ratio of extreme (one- or five-star) ratings, ratio of
-positive ratings, number of distinct businesses reviewed, maximum reviews
-written for any single business, and mean review length. Business-level: review
-count, mean and standard deviation of ratings received, and the signed and
-absolute deviation of this review's rating from its business's mean.
-
-Two indicator features, \texttt{rev\_seen\_in\_training} and
-\texttt{prod\_seen\_in\_training}, record whether the reviewer and business were
-observed during training, making the cold-start case explicit to the model
-rather than hiding it in an imputed value.
-
-Crucially, all aggregate tables are fitted on the training rows of a fold and
-then applied to held-out rows. A reviewer or business absent from training
-receives training-set priors. Computing these aggregates over the full corpus
---- the natural and, in our experience, the default implementation --- leaks
-both the existence and the composition of the evaluation fold into the features.
-
-\subsection{Fusion and Training}
-
-The 266-dimensional text vector and the 19-dimensional behavior vector are
-standardized and concatenated, then classified by a two-layer MLP: 256 hidden
-units, ReLU, dropout 0.3; 64 hidden units, ReLU, dropout 0.3; and a linear
-output. Single-branch ablations use the same architecture on one branch alone,
-with a smaller $(64, 32)$ hidden configuration for the behavior-only model to
-match its input dimensionality.
-
-Training uses focal loss~\cite{lin2017focal},
-\begin{equation}
-    L = -\alpha_t (1 - p_t)^{\gamma} \log(p_t),
-\end{equation}
-\noindent with $\gamma = 2$ and $\alpha$ set to the training-set genuine-class
-frequency, addressing the 14.53\% positive rate. We optimize with
-Adam~\cite{kingma2015adam} at a learning rate of $10^{-3}$, batch size 256, for
-at most 40 epochs, retaining the weights with the best validation AUC and
-stopping after six epochs without improvement.
-
-% ============================================================
-% V. EXPERIMENTAL SETUP
-% ============================================================
+This bounds our text-side numbers from below. It does not affect the paper's
+central claims, which concern the evaluation protocol and hold for any text
+encoder --- though it does leave open whether a stronger text branch would
+restore the fusion benefit that Section~\ref{sec:results} finds reverses.
 
 \section{Experimental Setup}
 \label{sec:setup}
@@ -548,13 +521,6 @@ counterpart.
 
 \input{tables/results_main}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/final_model_comparison.png}
-\caption{Five-fold performance under the business-disjoint protocol. Error bars
-are standard deviations across folds.}
-\label{fig:models}
-\end{figure*}
 
 ReviewGuard leads on every metric, at 0.730 AUC-ROC and 0.626 Macro-F1. These
 are modest numbers, and we present them as a floor rather than as a competitive
@@ -583,7 +549,8 @@ We are deliberate about what this does and does not establish. With five paired
 folds the Wilcoxon signed-rank test bottoms out at $p = 0.0625$, so the
 five-of-five comparisons sit at the floor of what the test can report and
 nothing here clears $\alpha = 0.05$. The effect is also small relative to
-fold-to-fold spread, which Fig.~\ref{fig:stability} shows directly.
+fold-to-fold spread, which the standard deviations in Table~\ref{tab:results}
+show directly.
 
 It also does not survive the second axis, and we report that plainly because it
 is the more informative outcome. Under the transductive regime the ordering
@@ -607,44 +574,17 @@ text branch to where concatenation is again a fair fight --- is exactly the
 experiment we were unable to run, and it is now the most interesting thing we
 cannot answer.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/fold_stability.png}
-\caption{Per-fold AUC-ROC under the business-disjoint protocol. Horizontal bars
-mark per-model means. Fold-to-fold spread is comparable to the differences
-between the leading models, which is why we decline to claim a fusion win.}
-\label{fig:stability}
-\end{figure}
 
 \subsection{Discrimination and Errors}
 
-Fig.~\ref{fig:roc} shows ROC curves and Fig.~\ref{fig:cm} the confusion matrix
-for ReviewGuard. Both pool the out-of-fold predictions from all five
-business-disjoint folds, so every review in the corpus is scored exactly once by
-a model that never saw its business during training.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/roc_all_models.png}
-\caption{ROC curves for ReviewGuard and its two ablations, pooled over the
-out-of-fold predictions of all five business-disjoint folds.}
-\label{fig:roc}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.82\columnwidth]{figures/cm_reviewguard_fusion.png}
-\caption{ReviewGuard confusion matrix over the pooled out-of-fold predictions of
-all five business-disjoint folds. A single threshold is fitted to the pooled
-scores, giving 37.3\% fake-class recall against the 39.1\% mean of the
-five per-fold thresholds in Table~\ref{tab:results}.}
-\label{fig:cm}
-\end{figure}
-
-The error profile is what the threshold objective implies: tuning for Macro-F1
-under 14.5\% prevalence buys fake-class recall at a substantial cost in false
-positives. For deployment this trade-off should be set from the relative cost of
-suppressing a genuine review versus missing a fake one, not from Macro-F1.
+Pooling the out-of-fold predictions of all five business-disjoint folds, so that
+every review is scored once by a model that never saw its business, ReviewGuard
+recovers 37.3\% of fake reviews at the threshold maximising Macro-F1 on the
+pooled scores. The error profile is what that objective implies: under 14.5\%
+prevalence, tuning for Macro-F1 buys fake-class recall at a substantial cost in
+false positives. For deployment the trade-off should be set from the relative
+cost of suppressing a genuine review against missing a fake one, not from
+Macro-F1.
 
 \subsection{Feature Regime: Removing Leakage vs.\ Removing Information}
 \label{sec:regime}
@@ -769,84 +709,52 @@ rows, and a degree is not computed from rows it can partition.}
 
 Table~\ref{tab:graph} reports the consequence, and its last row is the most
 direct statement of the problem in this paper. A node's R-S-R degree is worth
-0.709 AUC under the reviewer-disjoint split and 0.708 under the business-disjoint
-one. The split moves it by 0.001. Every other quantity in this study moves
-substantially between the two protocols, because every other quantity is
-computed from rows the split can partition; a degree is read off the whole graph
-either way, so partitioning the rows does nothing to it.
+0.709 AUC under the reviewer-disjoint split and 0.708 under the
+business-disjoint one --- the split moves it by 0.001. Every other quantity in
+this study moves substantially between protocols, because every other quantity
+is computed from rows the split can partition. A degree is read off the whole
+graph either way.
 
-The two rows above it show what follows. Under the reviewer-disjoint split the
-behavior MLP already scores 0.889, and adding the degrees changes nothing
-($-0.006$): the feature matrix, fitted on training rows that include the very
-businesses being scored, already carries what the degrees would supply. Under
-the business-disjoint split the same features drop to 0.706 --- the split has
-stripped the business information out of them --- and the same two degrees now
-add $+0.082$, putting a substantial part of it back. The split removed business
-information from the feature matrix and left it in the topology.
+The rows above show what follows. Under the reviewer-disjoint split the behavior
+MLP already scores 0.889 and adding the degrees changes nothing ($-0.006$): its
+feature matrix, fitted on training rows that include the very businesses being
+scored, already carries what they would supply. Under the business-disjoint
+split the same features fall to 0.706 and the same two degrees add $+0.082$. The
+split removed business information from the feature matrix and left it in the
+topology. Ordering the gap column ranks the four rows by exactly how much of
+each model's information comes from partitionable rows: $+0.183$ for the
+feature-only MLP, $+0.095$ and $+0.122$ for the graph-informed models, $+0.001$
+for a degree.
 
-The relation-aware GNN reaches 0.816 under that split. The degree control
-recovers 0.788 of it, roughly three quarters of the distance from 0.706, so the
-larger part of the GNN's advantage is a count that a feature model can simply be
-handed. We read the remainder as the honest size of the relational contribution:
-message passing is not doing nothing here, but it is doing considerably less
-than the raw comparison against a feature model would suggest.
+Two consequences. First, the GNN reaches 0.816 where its features alone reach
+0.706, and the degree control recovers 0.788 of that --- three quarters of the
+distance --- so the larger part of its advantage is a count a feature model can
+be handed directly, with the remainder the honest size of the relational
+contribution. Second, and with the sign opposite to intuition, the GNN is
+\textit{less} disturbed by the stricter protocol than the plain feature model,
+losing 0.122 against 0.183. That is not better generalization to unseen
+businesses; it is a larger share of its information living where the split
+cannot reach. A model can be made to look robust to a leakage control by drawing
+what it needs through a channel the control does not govern.
 
-Read down the gap column, Table~\ref{tab:graph} orders the four rows by how much
-of each model's information comes from rows a split can partition. The behavior
-MLP sits at the top with $+0.183$: everything it knows is computed from rows,
-and the split rearranges all of it. A degree sits at the bottom with $+0.001$:
-nothing it knows is computed from rows. The two graph-informed models fall in
-between, at $+0.095$ and $+0.122$.
-
-This yields a conclusion worth stating carefully, because its sign is the
-opposite of what one might expect. The GNN is \textit{less} disturbed by the
-stricter protocol than the plain feature model --- it loses 0.122 where the MLP
-loses 0.183. That is not evidence that it generalizes better to unseen
-businesses. It is evidence that a larger share of what it relies on lives
-somewhere the split cannot reach. A model can be made to look robust to a
-leakage control simply by drawing its information through a channel the control
-does not govern.
-
-The implication for benchmarking is narrower than "graph methods leak" and more
-awkward: a business-disjoint split is necessary but not sufficient for a
-transductive graph model, because the topology re-encodes what the split
-removed from the features. Reporting a business-disjoint number for such a model
-without also stating what its edges carry does not settle the question the split
-was posed to answer.
+The implication is narrower than ``graph methods leak'' and more awkward: a
+business-disjoint split is necessary but not sufficient for a transductive graph
+model, because the topology re-encodes what the split removed from the features.
+Reporting a business-disjoint number for such a model, without stating what its
+edges carry, does not settle the question the split was posed to answer.
 
 \subsection{What the Behavior Branch Actually Uses}
 
-The protocol gap in Table~\ref{tab:protocol} shows that behavioral models rely
-on business identity; SHAP~\cite{lundberg2017unified} attribution shows the
-mechanism directly. Applying a kernel explainer to the behavior-only MLP over a
-sample of held-out reviews, one feature dominates: \texttt{prod\_review\_count},
-the number of reviews the business has received, carries a mean absolute SHAP
-value of 0.462, five times that of the next feature
-(\texttt{review\_word\_count}, 0.093). The four features describing the business
-itself (\texttt{prod\_*}) account for 55.5\% of total attribution while making up
-4 of the 19 inputs.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/shap_behavior_summary.png}
-\caption{Mean absolute SHAP value per behavioral feature for the behavior-only
-MLP. Business-level features are shown in red. The single most influential
-feature is how many reviews a business has received, which carries no
-information about the review being classified.}
-\label{fig:shap}
-\end{figure}
-
-This is worth stating plainly: the most influential input to the behavior branch
-is a property of the business, not of the review or its author. Under the
-reviewer-disjoint protocol that feature is highly predictive, because a business
-seen in training carries its fake rate with it. Under the business-disjoint
-protocol it is a bare popularity count for a business the model has never seen,
-and its predictive value largely evaporates. The feature the model leans on
-hardest is precisely the one that does not transfer.
-
-% ============================================================
-% VII. DISCUSSION
-% ============================================================
+SHAP~\cite{lundberg2017unified} attribution over the behavior-only MLP agrees
+with the degree control from the feature side. One input dominates:
+\texttt{prod\_review\_count}, the number of reviews the business has received,
+carries a mean absolute SHAP value of 0.462, five times that of the next feature
+(\texttt{review\_word\_count}, 0.093), and the four \texttt{prod\_*} features
+account for 55.5\% of total attribution while making up 4 of 19 inputs. The most
+influential input to the behavior branch is a property of the business, not of
+the review or its author --- which is why the choice of what a business-level
+feature may be computed from moves this branch so much and text models not at
+all.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -946,46 +854,41 @@ accuracy specifically so that minority-class behavior stays visible.
 
 We set out to build a text-plus-behavior fake review detector for YelpCHI and
 found that the benchmark's label structure makes conventional evaluation
-misleading. Fake reviews cluster by business to the point that business identity
-alone is a 0.951-AUC predictor, and models evaluated with businesses spanning the
-split score far higher than the same models evaluated on unseen businesses. The
-inflation is not uniform: it scales with how directly a model can reach business
-identity, from 0.032 AUC for a text-only model to 0.289 for a behavioral random
-forest, which is enough to reverse the ranking of behavioral and textual
-features. We additionally document label-contaminated timestamps and an
-uninformative behavioral feature file in a widely circulated distribution of the
-dataset.
+misleading --- and then that the obvious correction is misleading in its own way.
 
-But the correction that grouping folds by business is enough does not hold, and
-saying why is the more useful result. Business-level quantities are not one
-thing. Statistics derived from labels are leakage; the identity of a known
-target does not transfer; and a label-free profile of a business's own reviews
-transfers to businesses never seen, at 0.805 AUC. A strict training-only
-featurization removes all three together, which is why our own first pass made
-behavioral features look far weaker than they are. A transductive graph model
-sits at the opposite extreme: its edges reconstruct the profile whatever its
-features are permitted to hold, so a business-disjoint split does not constrain
-it the way it constrains a feature-based model. A relation-aware GNN here is
-matched by a plain MLP given two graph degrees, which locates its advantage in
-bookkeeping rather than in relational learning.
+Fake reviews cluster by business to the point that the per-business fake rate is
+a 0.951-AUC predictor, so grouping folds by business is necessary. It is not
+sufficient, in two directions. On the feature side, business-level quantities are
+of three kinds: label-derived statistics are leakage, the identity of a known
+target does not transfer, and a label-free profile of a business's own reviews
+transfers to unseen businesses at 0.805 AUC. A strict training-only
+featurization removes all three, and doing so is what made our own first pass
+conclude that behavioral features were mostly memorization. Measured with those
+profiles restored, the split costs behavioral models 0.005--0.045 AUC against
+0.032--0.074 for text --- the opposite ordering. On the model side, a
+transductive graph model's edges reconstruct the profile whatever its features
+hold: a degree is worth 0.709 AUC under one split and 0.708 under the other, and
+a plain MLP given two degrees recovers three quarters of a GNN's advantage.
 
-ReviewGuard itself we report as a negative result. It leads its ablations under
-the inductive regime, by a margin five folds cannot establish as significant,
-and loses to the behavior branch alone on five of five folds under the
-transductive one --- 0.853 against 0.917. Concatenation fusion helps when its
-branches are comparably strong and hurts when they are not, and which of those
-holds was decided here by a featurization choice rather than by the data. We
-find no regime-independent fusion benefit.
+The general form is that a protocol gap belongs to the pair (model, feature
+regime), not to a model. Reported as a model property it can invert an ordering
+rather than merely rescale it, and nothing in the experiment signals that this
+has happened. We recommend reporting the split, the source of aggregate
+statistics, and --- for graph models --- a degree control.
 
-Three directions follow. First, completing the transformer text branch, which
-our infrastructure prevented and which is the most likely source of improvement.
-Second, re-examining published YelpCHI and YelpNYC results along both axes ---
-graph-based methods especially, since the degree control suggests their reported
-margins may rest on structure a split cannot remove. Third, obtaining a clean
-temporal record, so that burstiness can be tested for which of the three
-categories it belongs to; unlike the static aggregates studied here, it is
-plausibly a property of a campaign rather than of a business, and would then
-transfer where they do not.
+ReviewGuard itself is a negative result: it leads its ablations under one regime
+and loses to its behavior branch on five of five folds under the other, so we
+find no regime-independent fusion benefit. We additionally document
+label-contaminated timestamps and an uninformative behavioral feature file in a
+widely circulated distribution of the dataset.
+
+Three directions follow. Completing the transformer text branch, which our
+infrastructure prevented, and which would test whether a stronger text branch
+restores fusion. Re-examining published YelpCHI and YelpNYC results along both
+axes, graph methods especially. And obtaining a clean temporal record, so that
+burstiness can be assigned to one of the three categories --- unlike the static
+aggregates here it is plausibly a property of a campaign rather than a business,
+and would then transfer where they do not.
 
 \section*{Acknowledgment}
 

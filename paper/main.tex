@@ -53,35 +53,26 @@ rithwikreddyd@ou.edu}
 % ============================================================
 
 \begin{abstract}
-Fake reviews in YelpCHI, the standard benchmark for this task, are concentrated
-by business: 657 of its 1{,}224 businesses contain no fake reviews at all, and
-the per-business fake rate alone is a 0.951-AUC predictor of the label. This
-makes every business-level quantity suspect, and the usual response --- grouping
-cross-validation folds so that no business spans the split --- produces a large
-apparent collapse. A behavioral random forest falls from 0.934 to 0.646 AUC-ROC
-under that change, enough to invert the ranking of behavioral and textual
-features. We show that reading is mostly wrong. Business-level quantities divide
-into three kinds the conventional protocol conflates: statistics derived from
-labels, which are unambiguous leakage; the identity of a business known to have
-been targeted, which a business-disjoint split correctly removes; and label-free
-profiles of a business's own reviews, which a platform observes for a brand-new
-listing and which transfer to businesses never seen in training at 0.805 AUC. A
-strict training-only featurization removes all three, and that is what most of
-the collapse turns out to be. Restoring only the third --- using no labels and
-changing nothing else --- returns 0.252 of the random forest's 0.289, so roughly
-87\% of the apparent leakage was withheld information and about 13\% was genuine.
-We therefore evaluate along two axes, the split and the source of a feature's
-statistics, and report both; the axis is well behaved, moving behavioral models
-by up to $+0.252$ and text models by $+0.000$. Graph models make the distinction
-unavoidable, since message passing reconstructs a business profile from
-same-business neighbours whatever the feature matrix holds: a node's degree is
-worth 0.709 AUC under one split and 0.708 under the other, and a plain MLP given
-two such degrees recovers three quarters of a relation-aware GNN's advantage.
-A business-disjoint split is thus necessary but not sufficient for graph models.
-Our own detector yields a negative result --- its fusion benefit reverses under
-the second axis --- and we additionally document label-contaminated timestamps
-(0.965 AUC from the timestamp alone) and an uninformative behavioral feature
-file in a widely circulated distribution of the dataset.
+Fake reviews in YelpCHI are concentrated by business: 657 of its 1{,}224
+businesses contain none at all, and the per-business fake rate alone is a
+0.951-AUC predictor of the label. The usual remedy is to group cross-validation
+folds so no business spans the split, which produces a dramatic collapse --- a
+behavioral random forest falls from 0.934 to 0.646 AUC-ROC. We show that reading
+is backwards. Business-level quantities are of three kinds the protocol
+conflates: statistics derived from labels, which are leakage; the identity of a
+known target, which the split correctly removes; and label-free profiles of a
+business's own reviews, which a platform observes for a new listing and which
+transfer to unseen businesses at 0.805 AUC. A strict training-only
+featurization removes all three. Restoring only the third, using no labels,
+returns 0.252 of that 0.289. Measured inside that regime the split costs
+behavioral models 0.005--0.045 AUC against 0.032--0.074 for text models it
+cannot affect: given honest features, behavioral models transfer to unseen
+businesses \emph{better} than textual ones while scoring far higher. The
+protocol gap is a property not of a model but of the pair (model, feature
+regime), and measuring it in one regime can invert an ordering rather than
+merely rescale it. Graph models compound this --- a node's degree is worth 0.709
+AUC under one split and 0.708 under the other --- so grouping is necessary but
+not sufficient for them.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -123,15 +114,17 @@ behavioral and textual features. Read on its own, that looks like a
 demonstration that behavioral performance on this benchmark was mostly
 memorization.
 
-It is not, or not only. Business-level quantities are not one thing, and the
-split does not treat them alike. Statistics derived from labels are leakage and
+That reading is backwards, and the experiments below say so. Business-level
+quantities are not one thing, and the split does not treat them alike. Statistics derived from labels are leakage and
 must go. The identity of a known target does not transfer, and grouping removes
 it correctly. But a label-free profile of a business's own reviews --- how long
 they run, how tightly its ratings cluster --- is something a platform observes
 for a listing created yesterday, and it transfers to businesses never seen
 during training at 0.805 AUC. A featurization strict enough to remove the first
 two typically removes the third as well, and the resulting number understates
-the method rather than correcting it. Ours did, which is how we came to notice.
+the method rather than correcting it. Ours did, which is how we came to notice
+--- and once the third is restored, the behavioral models turn out to transfer
+to unseen businesses better than the textual ones, not worse.
 
 Graph models make the same point from the other direction, and more sharply. A
 node's degree in the same-business relation is worth 0.709 AUC under the
@@ -709,6 +702,40 @@ and gives no signal that anything has gone wrong --- the experiment runs, the
 folds are clean, the result is simply too low. Grouping folds is not sufficient
 on its own; what a feature is permitted to be computed from has to be stated
 alongside the split.
+
+\subsection{The Protocol Gap Is Not a Property of a Model}
+\label{sec:gapregime}
+
+Running the remaining cell of the design makes the point sharper than we
+expected. Table~\ref{tab:gapregime} measures the business-disjoint split's cost
+\textit{separately inside each regime} --- that is, it asks how much a model
+loses to unseen businesses when its features are held fixed.
+
+\input{tables/gap_by_regime}
+
+For text models the two columns are identical, as they must be. For behavioral
+models they are not remotely alike. The behavior-only MLP loses 0.183 AUC to the
+split under the inductive regime and 0.013 under the transductive one; the
+random forest loses 0.289 and 0.045; behavioral logistic regression loses 0.183
+and 0.005.
+
+The ordering inverts. Under the inductive regime the behavioral models occupy
+the three worst positions in the table and the text models the best, which reads
+as a clean demonstration that behavioral features are the ones dependent on
+business identity. Under the transductive regime the behavioral models occupy
+the three \textit{best} positions --- 0.005, 0.013 and 0.045 against 0.032,
+0.062 and 0.074 for text. Given label-free features, behavioral models generalize
+to unseen businesses \textit{better} than textual ones do, while also scoring far
+higher in absolute terms (0.917 against 0.712).
+
+So the conclusion our own first pass reached --- that behavioral performance on
+YelpCHI is largely business memorization --- is not merely overstated. It is
+backwards, and the thing that made it look true was a featurization choice
+rather than anything in the data. We state it this bluntly because the failure
+is instructive: the protocol gap is not a property of a model or of a feature
+family. It is a property of the pair (model, feature regime), and measuring it
+in one regime while reporting it as a property of the model produces a
+diagnosis that can be wrong in its ordering, not just its magnitude.
 
 \subsection{Graph Models and the Limits of a Business-Disjoint Split}
 \label{sec:graph}

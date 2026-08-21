@@ -159,6 +159,17 @@ def build_claims() -> List[Tuple[str, float, Optional[float]]]:
         add("fusion loses to behavior-only, transductive", 0.064,
             _auc(prod_t, "Behavior-only MLP") - _auc(prod_t, "ReviewGuard (Fusion)"))
 
+    if prod_t and user_t and prod and user:
+        A = lambda d, m: d["summary"][m]["auc_roc"]["mean"]
+        for m, gi, gt in (("Behavior-only MLP", 0.183, 0.013),
+                          ("Behavior + RandomForest", 0.289, 0.045),
+                          ("Behavior + LogReg", 0.183, 0.005),
+                          ("Text-only MLP", 0.032, 0.032),
+                          ("TF-IDF + LogReg", 0.062, 0.062),
+                          ("TF-IDF + LinearSVM", 0.074, 0.074)):
+            add(f"gap inductive, {m}", gi, A(user, m) - A(prod, m))
+            add(f"gap transductive, {m}", gt, A(user_t, m) - A(prod_t, m))
+
     if prod_t and user:
         add("RF residual after regime correction", 0.037,
             _auc(user, "Behavior + RandomForest") - _auc(prod_t, "Behavior + RandomForest"))

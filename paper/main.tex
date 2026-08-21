@@ -523,7 +523,9 @@ out-of-fold predictions of all five business-disjoint folds.}
 \centering
 \includegraphics[width=0.82\columnwidth]{figures/cm_reviewguard_fusion.png}
 \caption{ReviewGuard confusion matrix over the pooled out-of-fold predictions of
-all five business-disjoint folds, at the threshold maximising Macro-F1.}
+all five business-disjoint folds. A single threshold is fitted to the pooled
+scores, giving 37.3\% fake-class recall against the 39.1\% mean of the
+five per-fold thresholds in Table~\ref{tab:results}.}
 \label{fig:cm}
 \end{figure}
 

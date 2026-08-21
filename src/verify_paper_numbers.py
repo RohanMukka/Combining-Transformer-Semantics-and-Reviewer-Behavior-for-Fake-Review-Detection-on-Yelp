@@ -40,6 +40,7 @@ def build_claims() -> List[Tuple[str, float, Optional[float]]]:
     gnn_p = _load("gnn_results_by_product.json")
     gnn_u = _load("gnn_results_by_user.json")
     deg_p = _load("degree_control_by_product.json")
+    deg_u = _load("degree_control_by_user.json")
     prod_t = _load("real_yelpchi_results_by_product_transductive.json")
 
     c: List[Tuple[str, float, Optional[float]]] = []
@@ -73,9 +74,26 @@ def build_claims() -> List[Tuple[str, float, Optional[float]]]:
         add("Relation GNN, business-disjoint", 0.816, _auc(gnn_p, "Relation GNN"))
     if deg_p:
         s = deg_p["summary"]
-        add("behavior MLP + graph degree", 0.788, s["Behavior MLP + graph degree"]["auc_roc"]["mean"])
-        add("R-S-R degree alone", 0.708, s["R-S-R degree alone"]["auc_roc"]["mean"])
-        add("behavior MLP (degree-control run)", 0.706, s["Behavior MLP"]["auc_roc"]["mean"])
+        add("behavior MLP + graph degree, bus-disj", 0.788,
+            s["Behavior MLP + graph degree"]["auc_roc"]["mean"])
+        add("R-S-R degree alone, bus-disj", 0.708,
+            s["R-S-R degree alone"]["auc_roc"]["mean"])
+        add("behavior MLP, bus-disj (degree run)", 0.706,
+            s["Behavior MLP"]["auc_roc"]["mean"])
+    if deg_u:
+        s = deg_u["summary"]
+        add("behavior MLP, rev-disj (degree run)", 0.889,
+            s["Behavior MLP"]["auc_roc"]["mean"])
+        add("R-S-R degree alone, rev-disj", 0.709,
+            s["R-S-R degree alone"]["auc_roc"]["mean"])
+        add("degree gain, rev-disj", -0.006,
+            s["Behavior MLP + graph degree"]["auc_roc"]["mean"]
+            - s["Behavior MLP"]["auc_roc"]["mean"])
+    if deg_p:
+        s = deg_p["summary"]
+        add("degree gain, bus-disj", 0.082,
+            s["Behavior MLP + graph degree"]["auc_roc"]["mean"]
+            - s["Behavior MLP"]["auc_roc"]["mean"])
     if gnn_p and gnn_p.get("neighborhood_audit"):
         add("R-S-R neighbours in training, business-disjoint", 0.000,
             gnn_p["neighborhood_audit"]["frac_rsr_neighbors_in_training"])

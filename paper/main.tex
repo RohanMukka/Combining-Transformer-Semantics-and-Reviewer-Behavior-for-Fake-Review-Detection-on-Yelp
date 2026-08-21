@@ -651,17 +651,29 @@ inductive regime is a constant worth 0.500.
 
 \input{tables/graph_comparison}
 
-Table~\ref{tab:graph} reports the consequence. The relation-aware GNN reaches
-0.816 AUC under the business-disjoint split, well above the 0.706 of the same
-behavioral features without a graph. Handing those two degrees to a plain MLP
-recovers 0.788 of that --- roughly three quarters of the difference --- and
-R-S-R degree on its own (0.708) matches what the entire 19-feature inductive set
-achieves.
+Table~\ref{tab:graph} reports the consequence, and its last row is the most
+direct statement of the problem in this paper. A node's R-S-R degree is worth
+0.709 AUC under the reviewer-disjoint split and 0.708 under the business-disjoint
+one. The split moves it by 0.001. Every other quantity in this study moves
+substantially between the two protocols, because every other quantity is
+computed from rows the split can partition; a degree is read off the whole graph
+either way, so partitioning the rows does nothing to it.
 
-We read the remainder as the honest size of the relational contribution. The
-larger part of the GNN's advantage is a count that the business-disjoint split
-was intended to withhold and that a feature model can simply be handed; the
-smaller part is not, and we do not claim message passing buys nothing here.
+The two rows above it show what follows. Under the reviewer-disjoint split the
+behavior MLP already scores 0.889, and adding the degrees changes nothing
+($-0.006$): the feature matrix, fitted on training rows that include the very
+businesses being scored, already carries what the degrees would supply. Under
+the business-disjoint split the same features drop to 0.706 --- the split has
+stripped the business information out of them --- and the same two degrees now
+add $+0.082$, putting a substantial part of it back. The split removed business
+information from the feature matrix and left it in the topology.
+
+The relation-aware GNN reaches 0.816 under that split. The degree control
+recovers 0.788 of it, roughly three quarters of the distance from 0.706, so the
+larger part of the GNN's advantage is a count that a feature model can simply be
+handed. We read the remainder as the honest size of the relational contribution:
+message passing is not doing nothing here, but it is doing considerably less
+than the raw comparison against a feature model would suggest.
 
 The implication for benchmarking is narrower than "graph methods leak" and more
 awkward: a business-disjoint split is necessary but not sufficient for a

@@ -1,0 +1,464 @@
+{
+  "summary": {
+    "Behavior MLP": {
+      "auc_roc": {
+        "mean": 0.889088160427729,
+        "std": 0.006154328417560856,
+        "folds": [
+          0.8952455051704357,
+          0.884377026171461,
+          0.8866901511857632,
+          0.8974084113508656,
+          0.8817197082601189
+        ]
+      },
+      "average_precision": {
+        "mean": 0.5114835862342871,
+        "std": 0.02556424653051669,
+        "folds": [
+          0.5170858452447934,
+          0.48012640680069674,
+          0.5302119126850442,
+          0.5456363901701544,
+          0.4843573762707469
+        ]
+      },
+      "macro_f1": {
+        "mean": 0.7284275648740964,
+        "std": 0.008445119894862204,
+        "folds": [
+          0.7364382622132819,
+          0.714604275955462,
+          0.7288212728705561,
+          0.7377138032328967,
+          0.724560210098286
+        ]
+      },
+      "f1_fake": {
+        "mean": 0.5488826892153572,
+        "std": 0.014137313488965731,
+        "folds": [
+          0.5609120521172638,
+          0.5276112338277059,
+          0.5519399249061326,
+          0.5656437836127808,
+          0.5383064516129032
+        ]
+      },
+      "precision_fake": {
+        "mean": 0.4808644307691917,
+        "std": 0.014514932857359287,
+        "folds": [
+          0.49653979238754326,
+          0.4558342420937841,
+          0.4739387426114992,
+          0.4895947426067908,
+          0.48841463414634145
+        ]
+      },
+      "recall_fake": {
+        "mean": 0.6401132566328018,
+        "std": 0.025112711485092844,
+        "folds": [
+          0.6444610778443114,
+          0.6262172284644195,
+          0.6606741573033708,
+          0.6696629213483146,
+          0.5995508982035929
+        ]
+      },
+      "accuracy": {
+        "mean": 0.8471515743330782,
+        "std": 0.005842442397694749,
+        "folds": [
+          0.8533347840278533,
+          0.8371232727668372,
+          0.8441954085518442,
+          0.8505984766050054,
+          0.8505059297138505
+        ]
+      }
+    },
+    "Behavior MLP + graph degree": {
+      "auc_roc": {
+        "mean": 0.8827737796874647,
+        "std": 0.008270065636884042,
+        "folds": [
+          0.8783669294129756,
+          0.8737428678764578,
+          0.8861776489927307,
+          0.897252924614442,
+          0.8783285275407176
+        ]
+      },
+      "average_precision": {
+        "mean": 0.4971081736821376,
+        "std": 0.026203255193816614,
+        "folds": [
+          0.48375330296589636,
+          0.46479762324714763,
+          0.5160383035966265,
+          0.5378161828237477,
+          0.4831354557772702
+        ]
+      },
+      "macro_f1": {
+        "mean": 0.7243091337000221,
+        "std": 0.00792409613619863,
+        "folds": [
+          0.7249824223685541,
+          0.7091606461332123,
+          0.7314820459540218,
+          0.7296798902583925,
+          0.72624066378593
+        ]
+      },
+      "f1_fake": {
+        "mean": 0.5481601570115096,
+        "std": 0.006650436950830417,
+        "folds": [
+          0.5438316863245138,
+          0.5381568523897544,
+          0.5564238824632698,
+          0.548397753551371,
+          0.5539906103286385
+        ]
+      },
+      "precision_fake": {
+        "mean": 0.46256297690660836,
+        "std": 0.0260132643829289,
+        "folds": [
+          0.47362576346474183,
+          0.41557911908646006,
+          0.47746781115879827,
+          0.4905437352245863,
+          0.4555984555984556
+        ]
+      },
+      "recall_fake": {
+        "mean": 0.6793490546995895,
+        "std": 0.05087521202683789,
+        "folds": [
+          0.6384730538922155,
+          0.7632958801498128,
+          0.6666666666666666,
+          0.6217228464419475,
+          0.7065868263473054
+        ]
+      },
+      "accuracy": {
+        "mean": 0.8370982755164874,
+        "std": 0.014705123269425262,
+        "folds": [
+          0.8443042106408443,
+          0.8097051463388097,
+          0.8456098357088456,
+          0.8512513601741023,
+          0.8346208247198347
+        ]
+      }
+    },
+    "R-S-R degree alone": {
+      "auc_roc": {
+        "mean": 0.7090079528795756,
+        "std": 0.007986514282393479,
+        "folds": [
+          0.6983296614917841,
+          0.721239616467196,
+          0.7105825266787188,
+          0.7123384280152674,
+          0.7025495317449124
+        ]
+      },
+      "average_precision": {
+        "mean": NaN,
+        "std": NaN,
+        "folds": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      },
+      "macro_f1": {
+        "mean": NaN,
+        "std": NaN,
+        "folds": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      },
+      "f1_fake": {
+        "mean": NaN,
+        "std": NaN,
+        "folds": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      },
+      "precision_fake": {
+        "mean": NaN,
+        "std": NaN,
+        "folds": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      },
+      "recall_fake": {
+        "mean": NaN,
+        "std": NaN,
+        "folds": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      },
+      "accuracy": {
+        "mean": NaN,
+        "std": NaN,
+        "folds": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      }
+    }
+  },
+  "reference": "Behavior MLP + graph degree",
+  "config": {
+    "folds": 5,
+    "split": "StratifiedGroupKFold grouped by user_id",
+    "degree_features": [
+      "rsr_degree",
+      "rur_degree"
+    ],
+    "note": "Degrees are read off the full graph, matching what a transductive GNN's edge set encodes. All other features remain fitted on training rows only.",
+    "seed": 42
+  },
+  "per_fold": [
+    {
+      "fold": 1,
+      "metrics": {
+        "Behavior MLP": {
+          "auc_roc": 0.8952455051704357,
+          "average_precision": 0.5170858452447934,
+          "macro_f1": 0.7364382622132819,
+          "f1_fake": 0.5609120521172638,
+          "precision_fake": 0.49653979238754326,
+          "recall_fake": 0.6444610778443114,
+          "accuracy": 0.8533347840278533,
+          "tn": 6982,
+          "fp": 873,
+          "fn": 475,
+          "tp": 861,
+          "threshold": 0.45854651924335593
+        },
+        "Behavior MLP + graph degree": {
+          "auc_roc": 0.8783669294129756,
+          "average_precision": 0.48375330296589636,
+          "macro_f1": 0.7249824223685541,
+          "f1_fake": 0.5438316863245138,
+          "precision_fake": 0.47362576346474183,
+          "recall_fake": 0.6384730538922155,
+          "accuracy": 0.8443042106408443,
+          "tn": 6907,
+          "fp": 948,
+          "fn": 483,
+          "tp": 853,
+          "threshold": 0.4427223229348059
+        },
+        "R-S-R degree alone": {
+          "auc_roc": 0.6983296614917841,
+          "average_precision": NaN,
+          "macro_f1": NaN,
+          "f1_fake": NaN,
+          "precision_fake": NaN,
+          "recall_fake": NaN,
+          "accuracy": NaN
+        }
+      }
+    },
+    {
+      "fold": 2,
+      "metrics": {
+        "Behavior MLP": {
+          "auc_roc": 0.884377026171461,
+          "average_precision": 0.48012640680069674,
+          "macro_f1": 0.714604275955462,
+          "f1_fake": 0.5276112338277059,
+          "precision_fake": 0.4558342420937841,
+          "recall_fake": 0.6262172284644195,
+          "accuracy": 0.8371232727668372,
+          "tn": 6858,
+          "fp": 998,
+          "fn": 499,
+          "tp": 836,
+          "threshold": 0.3943036570693507
+        },
+        "Behavior MLP + graph degree": {
+          "auc_roc": 0.8737428678764578,
+          "average_precision": 0.46479762324714763,
+          "macro_f1": 0.7091606461332123,
+          "f1_fake": 0.5381568523897544,
+          "precision_fake": 0.41557911908646006,
+          "recall_fake": 0.7632958801498128,
+          "accuracy": 0.8097051463388097,
+          "tn": 6423,
+          "fp": 1433,
+          "fn": 316,
+          "tp": 1019,
+          "threshold": 0.2644007039431366
+        },
+        "R-S-R degree alone": {
+          "auc_roc": 0.721239616467196,
+          "average_precision": NaN,
+          "macro_f1": NaN,
+          "f1_fake": NaN,
+          "precision_fake": NaN,
+          "recall_fake": NaN,
+          "accuracy": NaN
+        }
+      }
+    },
+    {
+      "fold": 3,
+      "metrics": {
+        "Behavior MLP": {
+          "auc_roc": 0.8866901511857632,
+          "average_precision": 0.5302119126850442,
+          "macro_f1": 0.7288212728705561,
+          "f1_fake": 0.5519399249061326,
+          "precision_fake": 0.4739387426114992,
+          "recall_fake": 0.6606741573033708,
+          "accuracy": 0.8441954085518442,
+          "tn": 6877,
+          "fp": 979,
+          "fn": 453,
+          "tp": 882,
+          "threshold": 0.44080384360118346
+        },
+        "Behavior MLP + graph degree": {
+          "auc_roc": 0.8861776489927307,
+          "average_precision": 0.5160383035966265,
+          "macro_f1": 0.7314820459540218,
+          "f1_fake": 0.5564238824632698,
+          "precision_fake": 0.47746781115879827,
+          "recall_fake": 0.6666666666666666,
+          "accuracy": 0.8456098357088456,
+          "tn": 6882,
+          "fp": 974,
+          "fn": 445,
+          "tp": 890,
+          "threshold": 0.4550870501182296
+        },
+        "R-S-R degree alone": {
+          "auc_roc": 0.7105825266787188,
+          "average_precision": NaN,
+          "macro_f1": NaN,
+          "f1_fake": NaN,
+          "precision_fake": NaN,
+          "recall_fake": NaN,
+          "accuracy": NaN
+        }
+      }
+    },
+    {
+      "fold": 4,
+      "metrics": {
+        "Behavior MLP": {
+          "auc_roc": 0.8974084113508656,
+          "average_precision": 0.5456363901701544,
+          "macro_f1": 0.7377138032328967,
+          "f1_fake": 0.5656437836127808,
+          "precision_fake": 0.4895947426067908,
+          "recall_fake": 0.6696629213483146,
+          "accuracy": 0.8505984766050054,
+          "tn": 6923,
+          "fp": 932,
+          "fn": 441,
+          "tp": 894,
+          "threshold": 0.566020734147592
+        },
+        "Behavior MLP + graph degree": {
+          "auc_roc": 0.897252924614442,
+          "average_precision": 0.5378161828237477,
+          "macro_f1": 0.7296798902583925,
+          "f1_fake": 0.548397753551371,
+          "precision_fake": 0.4905437352245863,
+          "recall_fake": 0.6217228464419475,
+          "accuracy": 0.8512513601741023,
+          "tn": 6993,
+          "fp": 862,
+          "fn": 505,
+          "tp": 830,
+          "threshold": 0.49272403928366576
+        },
+        "R-S-R degree alone": {
+          "auc_roc": 0.7123384280152674,
+          "average_precision": NaN,
+          "macro_f1": NaN,
+          "f1_fake": NaN,
+          "precision_fake": NaN,
+          "recall_fake": NaN,
+          "accuracy": NaN
+        }
+      }
+    },
+    {
+      "fold": 5,
+      "metrics": {
+        "Behavior MLP": {
+          "auc_roc": 0.8817197082601189,
+          "average_precision": 0.4843573762707469,
+          "macro_f1": 0.724560210098286,
+          "f1_fake": 0.5383064516129032,
+          "precision_fake": 0.48841463414634145,
+          "recall_fake": 0.5995508982035929,
+          "accuracy": 0.8505059297138505,
+          "tn": 7016,
+          "fp": 839,
+          "fn": 535,
+          "tp": 801,
+          "threshold": 0.5987582098353993
+        },
+        "Behavior MLP + graph degree": {
+          "auc_roc": 0.8783285275407176,
+          "average_precision": 0.4831354557772702,
+          "macro_f1": 0.72624066378593,
+          "f1_fake": 0.5539906103286385,
+          "precision_fake": 0.4555984555984556,
+          "recall_fake": 0.7065868263473054,
+          "accuracy": 0.8346208247198347,
+          "tn": 6727,
+          "fp": 1128,
+          "fn": 392,
+          "tp": 944,
+          "threshold": 0.4322379814253911
+        },
+        "R-S-R degree alone": {
+          "auc_roc": 0.7025495317449124,
+          "average_precision": NaN,
+          "macro_f1": NaN,
+          "f1_fake": NaN,
+          "precision_fake": NaN,
+          "recall_fake": NaN,
+          "accuracy": NaN
+        }
+      }
+    }
+  ]
+}

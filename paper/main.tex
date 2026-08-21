@@ -544,7 +544,10 @@ survive the second axis.
 
 \subsection{Business-Disjoint Performance}
 
-Table~\ref{tab:results} reports full metrics under the primary protocol.
+Table~\ref{tab:results} reports full metrics under the primary protocol in the
+inductive regime --- the strictest cell of the two-by-two, and a lower bound
+rather than an estimate. Section~\ref{sec:regime} gives the transductive
+counterpart.
 
 \input{tables/results_main}
 
@@ -557,12 +560,15 @@ are standard deviations across folds.}
 \end{figure*}
 
 ReviewGuard leads on every metric, at 0.730 AUC-ROC and 0.626 Macro-F1. These
-are modest numbers, and we present them as the honest operating point for this
-task rather than as a competitive result. Detecting a fake review at a business
-one has never seen, from text and reviewer statistics alone and without usable
-timestamps, is genuinely hard. The ordering of the two single branches is also
-worth noting: text (0.712) slightly ahead of behavior (0.706), the reverse of
-their ordering under the leakier protocol.
+are modest numbers, and we present them as a floor rather than as a competitive
+result: detecting a fake review at a business one has never seen, from text and
+reviewer statistics alone, without usable timestamps, and with the business
+itself described only by a training-set prior, is a deliberately unforgiving
+setting. The ordering of the two single branches is worth noting --- text
+(0.712) slightly ahead of behavior (0.706), the reverse of their ordering under
+the leakier protocol --- but it should be read as a statement about this cell of
+the design rather than about the two modalities, and
+Section~\ref{sec:regime} revisits it under the transductive regime.
 
 \subsection{Does Fusion Help?}
 

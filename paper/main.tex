@@ -10,7 +10,6 @@
 \usepackage{balance}
 \usepackage{enumitem}
 \usepackage{url}
-\usepackage{siunitx}
 % The repository name is long; let it wrap at hyphens and slashes.
 \Urlmuskip=0mu plus 1mu\relax
 \def\UrlBreaks{\do\/\do\-\do\.}
@@ -643,8 +642,8 @@ a business profile whether or not its feature matrix was allowed to contain one.
 
 Two measurements make this concrete. First, where a held-out review's
 same-business neighbours live: under a reviewer-disjoint split
-\SI{80.1}{\percent} of them sit in the training set, and under a
-business-disjoint split \SI{0.0}{\percent} do. Second, what the resulting
+80.1\% of them sit in the training set, and under a
+business-disjoint split 0.0\% do. Second, what the resulting
 structure is worth: on a business-disjoint fold, a node's R-S-R degree alone ---
 a count the split was meant to withhold --- scores an AUC of 0.696, while the
 same quantity presented as the feature \texttt{prod\_review\_count} under the

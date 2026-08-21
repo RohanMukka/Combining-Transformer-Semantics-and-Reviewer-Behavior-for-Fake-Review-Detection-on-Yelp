@@ -87,19 +87,20 @@ def fig_model_comparison(prod: Dict) -> None:
     models = [m for m in MODEL_ORDER if m in prod["summary"]]
     metrics = [("auc_roc", "AUC-ROC"), ("average_precision", "Avg. Precision"),
                ("macro_f1", "Macro-F1"), ("recall_fake", "Recall (Fake)")]
-    fig, axes = plt.subplots(1, 4, figsize=(12, 3.4))
-    x = np.arange(len(models))
+    fig, axes = plt.subplots(1, 4, figsize=(11, 2.9))
+    ypos = np.arange(len(models))
     for ax, (key, title) in zip(axes, metrics):
         vals = [prod["summary"][m][key]["mean"] for m in models]
         errs = [prod["summary"][m][key]["std"] for m in models]
         colors = [C_HL if m == HIGHLIGHT else C_MAIN for m in models]
-        ax.bar(x, vals, yerr=errs, color=colors, alpha=0.9, error_kw={"lw": 0.9})
-        ax.set_xticks(x)
-        ax.set_xticklabels(models, rotation=55, ha="right", fontsize=7)
-        ax.set_title(title)
-        ax.set_ylim(0, max(0.8, max(vals) * 1.25))
-        for xi, v in zip(x, vals):
-            ax.text(xi, v, f"{v:.3f}", ha="center", va="bottom", fontsize=6.5)
+        ax.barh(ypos, vals, xerr=errs, color=colors, alpha=0.9,
+                error_kw={"lw": 0.8})
+        ax.set_yticks(ypos)
+        ax.set_yticklabels(models if ax is axes[0] else [], fontsize=7.5)
+        ax.set_title(title, fontsize=9.5)
+        ax.set_xlim(0, max(0.85, max(vals) * 1.3))
+        for yi, v in zip(ypos, vals):
+            ax.text(v + 0.015, yi, f"{v:.3f}", va="center", fontsize=6.5)
     fig.suptitle("Five-fold performance, business-disjoint protocol (mean ± s.d.)",
                  y=1.04, fontsize=10.5)
     _save(fig, "final_model_comparison")
@@ -107,16 +108,18 @@ def fig_model_comparison(prod: Dict) -> None:
 
 def fig_fold_stability(prod: Dict) -> None:
     models = [m for m in MODEL_ORDER if m in prod["summary"]]
-    fig, ax = plt.subplots(figsize=(7, 3.4))
+    fig, ax = plt.subplots(figsize=(5.2, 3.6))
+    ypos = np.arange(len(models))
     for i, m in enumerate(models):
         folds = prod["summary"][m]["auc_roc"]["folds"]
         color = C_HL if m == HIGHLIGHT else C_MAIN
-        ax.scatter([i] * len(folds), folds, color=color, alpha=0.75, s=26, zorder=3)
-        ax.plot([i - 0.22, i + 0.22], [np.mean(folds)] * 2, color="black", lw=1.4, zorder=4)
-    ax.set_xticks(range(len(models)))
-    ax.set_xticklabels(models, rotation=55, ha="right", fontsize=7.5)
-    ax.set_ylabel("AUC-ROC")
-    ax.set_title("Per-fold AUC-ROC (bar = mean), business-disjoint protocol")
+        ax.scatter(folds, [i] * len(folds), color=color, alpha=0.7, s=24, zorder=3)
+        ax.plot([np.mean(folds)] * 2, [i - 0.24, i + 0.24],
+                color="black", lw=1.6, zorder=4)
+    ax.set_yticks(ypos)
+    ax.set_yticklabels(models, fontsize=8)
+    ax.set_xlabel("AUC-ROC")
+    ax.set_title("Per-fold AUC-ROC (bar = mean)", fontsize=9.5)
     _save(fig, "fold_stability")
 
 
@@ -172,7 +175,7 @@ def fig_confusion(scores: Dict) -> None:
     ax.set_xticks([0, 1]); ax.set_xticklabels(["Genuine", "Fake"])
     ax.set_yticks([0, 1]); ax.set_yticklabels(["Genuine", "Fake"])
     ax.set_xlabel("Predicted"); ax.set_ylabel("Actual")
-    ax.set_title("ReviewGuard, business-disjoint fold")
+    ax.set_title("ReviewGuard, pooled over 5 folds", fontsize=9.5)
     ax.grid(False)
     _save(fig, "cm_reviewguard_fusion")
 
@@ -193,7 +196,7 @@ def fig_roc(scores: Dict) -> None:
                 label=f"{name} (AUC {roc_auc_score(y, scores[key]):.3f})")
     ax.plot([0, 1], [0, 1], color="grey", ls=":", lw=1)
     ax.set_xlabel("False positive rate"); ax.set_ylabel("True positive rate")
-    ax.set_title("ROC, business-disjoint fold")
+    ax.set_title("ROC, pooled over 5 business-disjoint folds", fontsize=9.5)
     ax.legend(loc="lower right", fontsize=7.5)
     _save(fig, "roc_all_models")
 

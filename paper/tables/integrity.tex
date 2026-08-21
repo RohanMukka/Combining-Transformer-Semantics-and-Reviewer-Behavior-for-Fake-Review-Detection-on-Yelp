@@ -5,18 +5,19 @@ from the study; the third describes a property of YelpCHI itself that dictates
 the evaluation protocol.}
 \label{tab:integrity}
 \centering
-\small
-\begin{tabular}{llc}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llr@{}}
 \toprule
 \textbf{Source} & \textbf{Diagnostic} & \textbf{Value} \\
 \midrule
-Released \texttt{date} column & AUC from timestamp alone & 0.965 \\
- & Monthly fake rate, min--max & 0.026--0.498 \\
- & Distinct values in seconds field & 1 \\
-\texttt{behavioral\_features.csv} & Max $|r|$ with its own definition & 0.005 \\
- & Max $|r|$ with the label & 0.008 \\
-Business identity & Businesses with zero fake reviews & 657 of 1224 \\
- & AUC from per-business fake rate & 0.951 \\
+\texttt{date} column & AUC from timestamp alone & 0.965 \\
+ & Monthly fake-rate range & 0.026--0.498 \\
+ & Distinct seconds values & 1 \\
+\texttt{behavioral\_} & Max $|r|$ vs.\ own definition & 0.005 \\
+\texttt{features.csv} & Max $|r|$ vs.\ label & 0.008 \\
+Business identity & Businesses with no fakes & 657/1224 \\
+ & AUC from business fake rate & 0.951 \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -19,17 +19,27 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
-\pagestyle{plain}
+% IEEE conference papers carry no page numbers.
+\pagestyle{empty}
 
 \begin{document}
 
 \title{How Much of Fake Review Detection on YelpCHI is Business Memorization?}
 
 \author{
-\IEEEauthorblockN{Rithwik Reddy Donthi Reddy, Rohan Mukka}
-\IEEEauthorblockA{Department of Computer Science\\
-University of Oklahoma, Norman, OK\\
-CS 5903 Perspectives on Computing --- Spring 2026}
+\IEEEauthorblockN{Rithwik Reddy Donthi Reddy}
+\IEEEauthorblockA{\textit{School of Computer Science}\\
+\textit{University of Oklahoma}\\
+Norman, OK, USA\\
+% TODO: replace with your real address
+rithwik@ou.edu}
+\and
+\IEEEauthorblockN{Rohan Mukka}
+\IEEEauthorblockA{\textit{School of Computer Science}\\
+\textit{University of Oklahoma}\\
+Norman, OK, USA\\
+% TODO: replace with your real address
+rohanmukka@ou.edu}
 }
 
 \maketitle
@@ -40,30 +50,25 @@ CS 5903 Perspectives on Computing --- Spring 2026}
 
 \begin{abstract}
 YelpCHI is the standard benchmark for fake review detection, and reported
-accuracies on it are high. We show that a large share of that performance does
-not come from detecting deception. Fake reviews in YelpCHI are concentrated by
-business: 657 of its 1{,}224 businesses contain no fake reviews at all, and the
+accuracies on it are high. We show that much of that performance does not come
+from detecting deception. Fake reviews in YelpCHI are concentrated by business:
+657 of its 1{,}224 businesses contain no fake reviews at all, and the
 per-business fake rate is by itself a 0.951-AUC predictor of the label. Any
-evaluation that allows a business to appear in both training and test folds is
-therefore partly measuring memorization of which businesses were spam targets.
-We build ReviewGuard, a two-branch detector that fuses a lexical text
-representation of the review with reviewer- and business-level behavioral
-features, and evaluate it under two protocols that differ only in how folds are
-partitioned. Under a reviewer-disjoint split --- the convention in much of this
-literature --- a behavioral random forest reaches 0.934 AUC-ROC. Under a
-business-disjoint split, with identical features, models, and tuning, the same
-model falls to 0.646. The size of each model's drop tracks how much access it
-has to business identity: 0.032 for a text-only model, 0.183 for a
-behavior-only one, and 0.289 for the random forest. We further document two
-integrity failures in a widely circulated distribution of the dataset: the
-released timestamps are label-contaminated, yielding 0.965 AUC from the
-timestamp alone, and an accompanying behavioral feature file is uncorrelated
-with both the label and its own column definitions. Under business-disjoint
-evaluation ReviewGuard reaches 0.730 AUC-ROC, ahead of both single branches on
-five of five and four of five folds respectively --- a real but modest fusion
-benefit at an absolute performance level far below what this benchmark is
-usually reported to support. We argue that business-disjoint evaluation should
-be reported alongside any YelpCHI result.
+split that lets a business appear in both training and test folds therefore
+partly measures memorization of which businesses were spam targets. We build
+ReviewGuard, a detector fusing a lexical text representation with reviewer- and
+business-level behavioral features, and evaluate it under two protocols
+differing only in how folds are partitioned. Under a reviewer-disjoint split ---
+the convention in this literature --- a behavioral random forest reaches 0.934
+AUC-ROC; under a business-disjoint split, with identical features, models, and
+tuning, it falls to 0.646. Each model's drop tracks its access to business
+identity, from 0.032 for a text-only model to 0.289 for the random forest,
+which is enough to invert the ranking of behavioral and textual features. We
+additionally document two integrity failures in a widely circulated
+distribution of the dataset: label-contaminated timestamps yielding 0.965 AUC
+from the timestamp alone, and a behavioral feature file uncorrelated with both
+the label and its own column definitions. We argue that business-disjoint
+evaluation should be reported alongside any YelpCHI result.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -113,10 +118,10 @@ observed. The gap between them measures the shortcut.
 Our contributions are:
 
 \begin{enumerate}
-\item A quantification of business-identity leakage in YelpCHI, and a
-      demonstration that it accounts for the majority of the apparent
-      performance of behavioral fake review detectors on this benchmark
-      (Section~\ref{sec:protocol}).
+\item A quantification of business-identity leakage in YelpCHI
+      (Section~\ref{sec:integrity}), and a demonstration that it accounts for
+      the majority of the apparent performance of behavioral fake review
+      detectors on this benchmark (Section~\ref{sec:results}).
 \item ReviewGuard, a two-branch detector fusing lexical text features with
       reviewer and business behavioral features, trained with focal loss under
       severe class imbalance, evaluated under both protocols with per-model
@@ -124,7 +129,8 @@ Our contributions are:
       (Section~\ref{sec:method}).
 \item A data integrity audit of a widely circulated CSV distribution of
       YelpCHI, identifying label-contaminated timestamps and an uninformative
-      behavioral feature file (Section~\ref{sec:integrity}).
+      behavioral feature file, both excluded from our experiments
+      (Section~\ref{sec:integrity}).
 \item Evidence that the fusion benefit, unlike the behavioral advantage,
       survives the stricter protocol --- alongside the observation that all
       absolute performance under it is far below what this benchmark is
@@ -221,12 +227,12 @@ as a limitation rather than a design choice.
 
 \subsection{An Uninformative Feature File}
 
-The same distribution ships a \texttt{behavioral\_features.csv} with six
-precomputed columns (average star rating, review count, burst ratio, rating
-deviation, category diversity, account age). Reconstructing each column from the
-review table it purports to summarize --- for instance, computing each
-reviewer's actual mean rating --- yields correlations of at most 0.005 with the
-shipped values. The columns also correlate with the label at most 0.008 in
+The same distribution ships a six-column feature file,
+\texttt{behavioral\_features.csv}, holding average star rating, review count,
+burst ratio, rating deviation, category diversity, and account age.
+Reconstructing each column from the review table it purports to summarize ---
+for instance, computing each reviewer's actual mean rating --- yields
+correlations of at most 0.005 with the shipped values. The columns also correlate with the label at most 0.008 in
 absolute value, and are near-degenerate: the burst ratio is zero for 97.5\% of
 rows and category diversity is 1.0 for 99.4\%. The file carries no recoverable
 information and we do not use it. We flag it because it is distributed alongside
@@ -241,14 +247,15 @@ consist entirely of fake reviews, and the median business fake rate is zero.
 Mapping each review to its business's fake rate gives an AUC of 0.951.
 Fig.~\ref{fig:concentration} shows the distribution.
 
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/business_label_concentration.png}
+\includegraphics[width=0.88\textwidth]{figures/business_label_concentration.png}
 \caption{Fake reviews are concentrated by business. Left: distribution of
-per-business fake rates. Right: businesses sorted by fake rate, showing that
-the label is near-constant within a business.}
+per-business fake rates; the mode at zero is 657 businesses with no fake reviews
+at all. Right: businesses sorted by fake rate, showing that the label is
+near-constant within a business.}
 \label{fig:concentration}
-\end{figure}
+\end{figure*}
 
 This is not an error --- it reflects how spam campaigns actually work, and how
 the corpus was collected. But it means that business identity is close to a
@@ -416,7 +423,7 @@ tuning procedure are identical, and only the fold partitioning differs.
 
 \input{tables/protocol_comparison}
 
-\begin{figure*}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/protocol_comparison.png}
 \caption{The same models under both protocols. Bars are means over five folds
@@ -450,7 +457,7 @@ Table~\ref{tab:results} reports full metrics under the primary protocol.
 
 \input{tables/results_main}
 
-\begin{figure*}[htbp]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/final_model_comparison.png}
 \caption{Five-fold performance under the business-disjoint protocol. Error bars
@@ -488,7 +495,7 @@ advantage, survives the stricter protocol --- not as a decisive win. Whether a
 transformer text branch would widen the margin is exactly the experiment we were
 unable to run.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/fold_stability.png}
 \caption{Per-fold AUC-ROC under the business-disjoint protocol. Horizontal bars
@@ -500,22 +507,23 @@ between the leading models, which is why we decline to claim a fusion win.}
 \subsection{Discrimination and Errors}
 
 Fig.~\ref{fig:roc} shows ROC curves and Fig.~\ref{fig:cm} the confusion matrix
-for ReviewGuard on a representative business-disjoint fold, at the
-validation-tuned threshold.
+for ReviewGuard. Both pool the out-of-fold predictions from all five
+business-disjoint folds, so every review in the corpus is scored exactly once by
+a model that never saw its business during training.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/roc_all_models.png}
-\caption{ROC curves for ReviewGuard and its two ablations on a
-business-disjoint fold.}
+\caption{ROC curves for ReviewGuard and its two ablations, pooled over the
+out-of-fold predictions of all five business-disjoint folds.}
 \label{fig:roc}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.8\columnwidth]{figures/cm_reviewguard_fusion.png}
-\caption{ReviewGuard confusion matrix on a business-disjoint fold at the
-validation-tuned threshold.}
+\includegraphics[width=0.82\columnwidth]{figures/cm_reviewguard_fusion.png}
+\caption{ReviewGuard confusion matrix over the pooled out-of-fold predictions of
+all five business-disjoint folds, at the threshold maximising Macro-F1.}
 \label{fig:cm}
 \end{figure}
 
@@ -536,7 +544,7 @@ value of 0.462, five times that of the next feature
 itself (\texttt{prod\_*}) account for 55.5\% of total attribution while making up
 4 of the 19 inputs.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/shap_behavior_summary.png}
 \caption{Mean absolute SHAP value per behavioral feature for the behavior-only
@@ -641,6 +649,11 @@ business-disjoint splits, particularly for graph-based methods, which have the
 most direct access to business identity. Third, obtaining a clean temporal
 record so that burstiness features can be evaluated for whether they transfer
 across businesses as poorly as static aggregates do.
+
+\section*{Acknowledgment}
+
+The authors thank % TODO: professor's name and title, e.g. Prof. Jane Doe
+\textbf{[ADVISOR NAME]} for guidance throughout this project.
 
 \section*{Reproducibility}
 

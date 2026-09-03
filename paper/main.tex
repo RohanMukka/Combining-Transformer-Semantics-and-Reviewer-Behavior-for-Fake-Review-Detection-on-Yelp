@@ -66,9 +66,9 @@ business's own reviews, which a platform observes for a new listing and which
 transfer to unseen businesses at 0.805 AUC. A strict training-only
 featurization removes all three. Restoring only the third, using no labels,
 returns 0.252 of that 0.289. Measured inside that regime the split costs
-behavioral models 0.005--0.045 AUC against 0.032--0.074 for text models it
-cannot affect: given honest features, behavioral models transfer to unseen
-businesses \emph{better} than textual ones while scoring far higher. The
+behavioral models 0.021 AUC on average against 0.056 for text models it cannot
+affect: given honest features, behavioral models transfer to unseen businesses
+\emph{better} than textual ones on average, while scoring far higher. The
 protocol gap is a property not of a model but of the pair (model, feature
 regime), and measuring it in one regime can invert an ordering rather than
 merely rescale it. Graph models compound this --- a node's degree is worth 0.709
@@ -107,7 +107,7 @@ business has a fake rate of exactly zero, and mapping each review to the fake
 rate of its business yields an AUC of 0.951 on its own. That figure makes every
 business-level quantity look like a shortcut, and suggests an obvious remedy ---
 group the cross-validation folds so that no business spans the split, and a model
-can no longer profit from recognising a business it has seen targeted before.
+can no longer profit from recognizing a business it has seen targeted before.
 
 Doing so produces a dramatic collapse. A random forest over behavioral features
 falls from 0.934 to 0.646 AUC-ROC, enough to reverse the apparent ranking of
@@ -315,7 +315,7 @@ than the split itself. Three different things are easily conflated:
 mistake we made before correcting it. Trained on one set of businesses and
 evaluated on a \textit{disjoint} set, a profile of four such statistics reaches
 0.906 review-level AUC and 0.805 AUC when scored once per business. That is not
-recognising known spam targets; it is learning what a targeted business looks
+recognizing known spam targets; it is learning what a targeted business looks
 like and applying it to businesses never seen. The signal transfers, and a
 detector that discards it is handicapping itself for no methodological gain.
 
@@ -543,7 +543,7 @@ Fusion improves on every baseline, and the improvement over the classical
 models is large: $+0.084$ AUC over the behavioral random forest and $+0.131$
 over behavioral logistic regression. Against its own ablations the margin is
 smaller but consistent. ReviewGuard beats the text-only MLP on five of five
-folds ($+0.018$ mean AUC) and the behavior-only MLP on four of five ($+0.024$).
+folds ($+0.018$ mean AUC) and the behavior-only MLP on four of five ($+0.023$).
 
 We are deliberate about what this does and does not establish. With five paired
 folds the Wilcoxon signed-rank test bottoms out at $p = 0.0625$, so the
@@ -579,7 +579,7 @@ cannot answer.
 
 Pooling the out-of-fold predictions of all five business-disjoint folds, so that
 every review is scored once by a model that never saw its business, ReviewGuard
-recovers 37.3\% of fake reviews at the threshold maximising Macro-F1 on the
+recovers 37.3\% of fake reviews at the threshold maximizing Macro-F1 on the
 pooled scores. The error profile is what that objective implies: under 14.5\%
 prevalence, tuning for Macro-F1 buys fake-class recall at a substantial cost in
 false positives. For deployment the trade-off should be set from the relative
@@ -592,7 +592,7 @@ Macro-F1.
 Table~\ref{tab:protocol} holds the split fixed as the only variable and finds a
 large gap. But the inductive regime it uses does something stronger than
 removing leakage: for a business absent from training, every business-level
-feature becomes one constant. The model is not merely prevented from recognising
+feature becomes one constant. The model is not merely prevented from recognizing
 a known spam target --- it is prevented from observing the business at all.
 
 Table~\ref{tab:regime} repeats the business-disjoint protocol under both feature
@@ -662,11 +662,15 @@ and 0.005.
 The ordering inverts. Under the inductive regime the behavioral models occupy
 the three worst positions in the table and the text models the best, which reads
 as a clean demonstration that behavioral features are the ones dependent on
-business identity. Under the transductive regime the behavioral models occupy
-the three \textit{best} positions --- 0.005, 0.013 and 0.045 against 0.032,
-0.062 and 0.074 for text. Given label-free features, behavioral models generalize
-to unseen businesses \textit{better} than textual ones do, while also scoring far
-higher in absolute terms (0.917 against 0.712).
+business identity. Under the transductive regime that ordering
+largely reverses: the two strongest behavioral models take the two best
+positions in the table (0.005 and 0.013, against 0.032 for the best text model),
+and the behavioral family averages 0.021 against 0.056 for text. The reversal is
+not uniform --- the random forest, at 0.045, still trails every text model but
+the two TF-IDF baselines --- but the family-level ordering inverts. Given
+label-free features, behavioral models generalize to unseen businesses
+\textit{better} on average than textual ones do, while also scoring far higher
+in absolute terms (0.917 against 0.712).
 
 So the conclusion our own first pass reached --- that behavioral performance on
 YelpCHI is largely business memorization --- is not merely overstated. It is
@@ -682,17 +686,17 @@ diagnosis that can be wrong in its ordering, not just its magnitude.
 
 Graph methods sharpen the same point, because for them the distinction between
 the two feature regimes is not a choice. Message passing over the review graph
-aggregates over a node's neighbours, and in the R-S-R relation those neighbours
+aggregates over a node's neighbors, and in the R-S-R relation those neighbors
 are other reviews of the same business. A transductive GNN therefore reconstructs
 a business profile whether or not its feature matrix was allowed to contain one.
 
 Two measurements make this concrete. First, where a held-out review's
-same-business neighbours live: under a reviewer-disjoint split
+same-business neighbors live: under a reviewer-disjoint split
 80.1\% of them sit in the training set, and under a
 business-disjoint split 0.0\% do. Second, what the resulting
-structure is worth: on a business-disjoint fold, a node's R-S-R degree alone ---
-a count the split was meant to withhold --- scores an AUC of 0.696, while the
-same quantity presented as the feature \texttt{prod\_review\_count} under the
+structure is worth: under a business-disjoint split, a node's R-S-R degree
+alone --- a count the split was meant to withhold --- scores a mean AUC of
+0.708, while the same quantity presented as the feature \texttt{prod\_review\_count} under the
 inductive regime is a constant worth 0.500.
 
 \input{tables/graph_comparison}
@@ -727,7 +731,7 @@ feature-only MLP, $+0.095$ and $+0.122$ for the graph-informed models, $+0.001$
 for a degree.
 
 Two consequences. First, the GNN reaches 0.816 where its features alone reach
-0.706, and the degree control recovers 0.788 of that --- three quarters of the
+0.706, and the degree control reaches 0.788 --- three quarters of the
 distance --- so the larger part of its advantage is a count a feature model can
 be handed directly, with the remainder the honest size of the relational
 contribution. Second, and with the sign opposite to intuition, the GNN is
@@ -777,7 +781,7 @@ rows, the split removes the third capability along with the second, and the
 resulting number understates the method rather than correcting it. And if the
 model consumes a graph, grouping does not remove the second capability at all,
 because the topology reconstructs a business profile from same-business
-neighbours whatever the feature matrix contains. Reporting a business-disjoint
+neighbors whatever the feature matrix contains. Reporting a business-disjoint
 number is therefore not on its own evidence of anything; what a model's features
 and edges are permitted to see has to be stated alongside it. Concretely, we
 suggest reporting the split, the source of aggregate statistics, and --- for
@@ -790,7 +794,7 @@ given entity-level \textit{edges} can reconstruct the aggregates.
 
 \subsection{Limitations}
 
-Our study has six limitations we consider material.
+Our study has seven limitations we consider material.
 
 The transductive regime is optimistic in a specific way. It describes a
 held-out business using \textit{all} of its reviews --- a median of ten here,
@@ -805,7 +809,7 @@ record we do not trust in this distribution.
 Our graph result rests on a re-implementation. The model in
 Section~\ref{sec:graph} follows the CARE-GNN family --- per-relation mean
 aggregation over R-U-R and R-S-R --- but is not CARE-GNN, and omits its
-learned neighbour filtering. We report what our own GNN does; whether published
+learned neighbor filtering. We report what our own GNN does; whether published
 graph detectors behave the same way under a business-disjoint split is a
 question our degree control motivates rather than answers, and running it on
 released implementations is the single most valuable follow-up we can name.
@@ -864,9 +868,9 @@ target does not transfer, and a label-free profile of a business's own reviews
 transfers to unseen businesses at 0.805 AUC. A strict training-only
 featurization removes all three, and doing so is what made our own first pass
 conclude that behavioral features were mostly memorization. Measured with those
-profiles restored, the split costs behavioral models 0.005--0.045 AUC against
-0.032--0.074 for text --- the opposite ordering. On the model side, a
-transductive graph model's edges reconstruct the profile whatever its features
+profiles restored, the split costs behavioral models 0.021 AUC on average
+against 0.056 for text --- reversing the ordering at the family level. On the
+model side, a transductive graph model's edges reconstruct the profile whatever its features
 hold: a degree is worth 0.709 AUC under one split and 0.708 under the other, and
 a plain MLP given two degrees recovers three quarters of a GNN's advantage.
 

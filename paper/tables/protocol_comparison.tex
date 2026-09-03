@@ -2,9 +2,10 @@
 \begin{table}[htbp]
 \caption{Effect of the evaluation protocol on AUC-ROC. The reviewer-disjoint
 split allows a business to appear in both training and test folds; the
-business-disjoint split does not. The gap is the portion of apparent
-performance attributable to memorizing which businesses were spam targets.
-Rows are ordered by that gap.}
+business-disjoint split does not. The gap is the apparent performance that
+does not survive the stricter split. Section~\ref{sec:regime} decomposes it:
+for behavioral models most of it is information the inductive featurization
+withholds, not memorized business identity. Rows are ordered by that gap.}
 \label{tab:protocol}
 \centering
 \footnotesize
